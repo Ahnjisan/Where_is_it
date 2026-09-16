@@ -1,0 +1,2 @@
+# LG-CNS-6th-MiniPJT1
+LG_CNS_6th_MiniPJT1
