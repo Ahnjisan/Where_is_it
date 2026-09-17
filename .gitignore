@@ -1,0 +1,11 @@
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+.env
+.env.*
+!.env.example
+!frontend/.env.example
+!backend/.env.example
