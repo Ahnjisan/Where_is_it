@@ -4,20 +4,20 @@
 
 ## 1. 개발 환경
 
-Frontend와 Backend를 하나의 저장소에서 관리합니다. GitHub 저장소는 https://github.com/Ahnjisan/Where_is_it 입니다. 현재 두 프로젝트 디렉터리는 비어 있으며 실제 기술 스택과 버전은 정하지 않았습니다.
+Frontend와 Backend를 하나의 저장소에서 관리합니다. GitHub 저장소는 https://github.com/Ahnjisan/Where_is_it 입니다. Frontend 프로젝트는 아직 생성되지 않았고, Backend는 Spring Boot 기반 Gradle 프로젝트가 이미 생성되어 있습니다.
 
 | 구분 | 기술 후보 또는 현황 | 상태 |
 | --- | --- | --- |
 | Frontend | React·Vite 및 JavaScript 또는 TypeScript | 후보·언어 미결정 |
-| Backend | Spring Boot 또는 Node.js Express | 미결정 |
-| Database | MySQL 또는 PostgreSQL | 미결정 |
+| Backend | Spring Boot 3.5.16 · Gradle 8.14.5 · Java 17 | 구현됨 |
+| Database | MySQL (JDBC 드라이버 및 datasource 설정 적용) | 구성됨(실행 환경값 필요) |
 | AI API | OpenAI API 또는 기타 생성형 AI API | 제공자·모델 미결정 |
 | 외부 데이터 API | 경찰청 습득물정보 조회 API | 확정 |
 | 이메일 발송 서비스 | 서비스 미선정 | 미결정 |
 | 협업 도구 | GitHub, Notion, Google Sheets, Discord, Miro | 확정 |
 | 형상 관리 | GitHub Issues와 Pull Requests를 사용하는 GitHub Flow | 확정 |
 
-프로젝트 생성 후 Node.js·npm, React·Vite, Java 또는 Node.js, Spring Boot 또는 Express, Gradle 또는 npm, DBMS의 실제 사용 여부와 버전을 기록합니다. Java·Node.js·React·Vite·Spring Boot·Gradle·Database의 정확한 버전은 현재 미정입니다.
+Frontend 프로젝트 생성 후 Node.js·npm, React·Vite와 관련 버전을 기록합니다. Backend는 현재 Java 17, Spring Boot 3.5.16, Gradle 8.14.5, MySQL JDBC 설정을 사용합니다.
 
 ## 2. 사용 기술
 
@@ -27,11 +27,11 @@ React·Vite는 검토 중인 기술입니다. JavaScript와 TypeScript 중 선�
 
 ### Backend
 
-Java·Spring Boot·Gradle 또는 Node.js·Express·npm을 후보로 검토합니다. Backend 기술, Java 패키지명과 실제 의존성은 정하지 않았습니다.
+Backend는 Java 17, Spring Boot 3.5.16, Gradle 8.14.5 기반으로 구성되어 있습니다. 실행 시 DB 접속 정보(`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`)를 환경변수로 주입해야 합니다.
 
 ### Database
 
-MySQL 또는 PostgreSQL 중에서 결정하며 종류와 버전은 아직 미정입니다.
+Backend 설정은 MySQL datasource를 사용합니다. 실제 DB 서버 정보는 로컬 또는 실행 환경에서 환경변수로 주입합니다.
 
 ### AI API
 
@@ -53,12 +53,18 @@ GitHub, GitHub Issues와 Pull Requests, Notion, Google Sheets, Discord, Miro를 
 
 ## 3. 프로젝트 기본 구조
 
-다음은 현재 저장소에 존재하는 구조입니다. `frontend/`와 `backend/`는 아직 비어 있으므로 Git에는 디렉터리 자체가 기록되지 않습니다.
+다음은 현재 저장소에 존재하는 구조입니다. `frontend/`는 아직 프로젝트가 생성되지 않았고, `backend/`는 Spring Boot Gradle 프로젝트가 포함되어 있습니다.
 
 ```text
 Where_is_it/
 ├── frontend/             # 현재 빈 디렉터리; 프로젝트 미생성
-├── backend/              # 현재 빈 디렉터리; 프로젝트 미생성
+├── backend/              # Spring Boot Gradle 프로젝트
+│   ├── src/
+│   ├── gradle/
+│   ├── build.gradle
+│   ├── gradlew
+│   ├── gradlew.bat
+│   └── .env.example
 ├── docs/                 # 요구사항 및 협업 관련 문서
 ├── .github/              # Issue 및 PR 템플릿
 ├── .gitignore
@@ -70,7 +76,7 @@ Where_is_it/
 
 ## 4. 프로젝트 실행 방법
 
-현재 Frontend와 Backend 프로젝트 파일이 없으므로 설치·실행·빌드 명령의 성공 여부는 확인할 수 없습니다. 아래 명령은 프로젝트 생성 후 기술에 맞게 검토할 예시이며, 사용 전 `package.json`의 Script 또는 Gradle Wrapper와 설정을 확인해야 합니다. 존재하지 않는 Script를 가정하지 않습니다.
+현재 Frontend 프로젝트 파일은 없으므로 Frontend 명령의 성공 여부는 확인할 수 없습니다. Backend는 프로젝트 파일이 존재하며, 실행 전 `backend/.env.example`을 기준으로 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`를 준비해야 합니다.
 
 ### 4.1 저장소 Clone
 
@@ -89,7 +95,7 @@ Vite를 선택한 경우에도 개발 서버 주소와 포트는 실제 설정�
 
 ### 4.3 Backend 실행 예시
 
-Spring Boot를 선택하고 Gradle Wrapper가 생성된 경우, 실제 설정을 확인한 뒤 Unix 계열에서는 `./gradlew bootRun` 또는 `./gradlew build`, Windows에서는 `./gradlew.bat bootRun` 등의 명령을 검토할 수 있습니다. 현재 Wrapper와 실행 설정은 없습니다.
+Backend는 Spring Boot와 Gradle Wrapper가 이미 구성되어 있습니다. Unix 계열에서는 `./gradlew bootRun` 또는 `./gradlew build`, Windows에서는 `./gradlew.bat bootRun` 등을 사용할 수 있으며 실행 전 datasource 환경변수를 설정해야 합니다.
 
 Express를 선택하고 npm 프로젝트가 생성된 경우, `backend/package.json`의 Script와 의존성을 확인한 뒤 `npm install`이나 `npm run dev`의 사용 여부를 결정합니다. `npm run dev` Script 또는 dotenv 라이브러리가 자동으로 존재한다고 가정하지 않습니다. Backend의 접속 주소와 포트 역시 실제 설정에 따라 달라집니다.
 
@@ -113,7 +119,7 @@ Express를 선택하는 경우에도 dotenv 같은 라이브러리가 설치되�
 
 ### 5.3 `.env.example` 작성 규칙
 
-현재 `frontend/.env.example`과 `backend/.env.example`은 생성되지 않았습니다. 프로젝트 생성 후 필요한 경우 다음 규칙에 따라 작성합니다.
+현재 `frontend/.env.example`은 생성되지 않았고 `backend/.env.example`은 생성되어 있습니다. Frontend 예시 파일이 필요해지면 다음 규칙에 따라 작성합니다.
 
 - 실제 API Key와 비밀번호를 넣지 않습니다.
 - 실제 코드가 참조하는 변수명과 동일하게 씁니다.
