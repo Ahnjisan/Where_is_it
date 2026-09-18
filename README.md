@@ -20,6 +20,9 @@ LG CNS AM INSPIRE 6기 Mini Project 1
 6. 원하는 후보가 없으면 검색조건을 추적 대상으로 등록합니다.
 7. 등록 후 7일 동안 하루 1회 같은 조건으로 재검색하고, 새로운 유사 후보가 발견되면 건수를 포함한 이메일 알림을 보냅니다. 7일이 지나면 추적을 자동 종료합니다.
 
+<img width="1672" height="941" alt="어디갔니 ui 와이어프레임" src="https://github.com/user-attachments/assets/03a97c11-b791-4efd-a55b-42efa43a522c" />
+
+
 ## 핵심 기능
 
 - 다국어 자연어 입력과 AI 기반 검색조건 구조화
