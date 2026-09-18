@@ -104,22 +104,30 @@ Vite를 선택한 경우에도 개발 서버 주소와 포트는 실제 설정�
 
 JDK 17과 Docker(Compose v2 포함)가 필요합니다. 아래 명령은 모두 `backend/`에서 실행하며 WSL2(Ubuntu) 환경에서 확인했습니다. Windows용 명령은 확인하지 못했습니다.
 
-1. 환경변수 파일을 만들고 `DB_USERNAME`, `DB_PASSWORD`를 채웁니다. 작성 규칙은 5.2를 따릅니다. PowerShell에서는 `Copy-Item .env.example .env`를 사용합니다.
+1. `backend/`로 이동한 뒤 환경변수 파일을 만들고 `DB_USERNAME`, `DB_PASSWORD`를 채웁니다. 작성 규칙은 5.2를 따릅니다. PowerShell에서는 `Copy-Item .env.example .env`를 사용합니다.
 
 ```bash
+cd backend
 cp .env.example .env
 ```
 
 2. MySQL과 Redis를 실행합니다.
 
 ```bash
-docker compose up -d
+docker compose up -d --wait
 ```
 
 3. 애플리케이션을 실행하거나 테스트합니다. 테스트도 MySQL에 접속하므로 2단계가 먼저 필요합니다. Windows에서는 `./gradlew.bat`을 사용합니다.
 
+- 애플리케이션 실행
+
 ```bash
 ./gradlew bootRun
+```
+
+- 테스트 실행
+
+```bash
 ./gradlew test
 ```
 

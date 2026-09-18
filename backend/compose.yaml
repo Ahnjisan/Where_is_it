@@ -28,6 +28,8 @@ services:
 
   redis:
     image: redis:8.10
+    environment:
+      TZ: Asia/Seoul
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
@@ -44,14 +46,15 @@ services:
     environment:
       # 컨테이너 안에서는 localhost 대신 서비스 이름으로 접속한다.
       DB_URL: jdbc:mysql://mysql:3306/where_is_it
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
+      REDIS_PORT: 6379
       TZ: Asia/Seoul
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
 volumes:
