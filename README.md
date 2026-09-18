@@ -4,7 +4,7 @@ LG CNS AM INSPIRE 6기 Mini Project 1
 
 > 한국에서 물건을 잃어버린 외국인이 자신의 언어로 분실물을 설명하고, 경찰청의 실제 습득물 정보에서 관련 후보를 찾고 추적하는 서비스입니다.
 
-![Uploading 어디갔지 서비스 흐름도.png…]()
+<img width="1536" height="1024" alt="service-flow" src="https://github.com/user-attachments/assets/8a29459d-7da0-4ef2-9ec9-1ef7f1a39416" />
 
 ## 해결하려는 문제와 핵심 사용자
 
