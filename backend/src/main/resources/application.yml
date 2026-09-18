@@ -31,17 +31,6 @@ spring:
         # SQL 로그를 줄바꿈해 읽기 좋게 출력
         format_sql: true
 
-  # Redis 접속 정보. 기본값은 compose.yaml 의 redis(localhost:6379)이고,
-  # 다른 주소를 쓸 때만 .env 또는 OS 환경변수로 REDIS_HOST·REDIS_PORT 를 준다.
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      repositories:
-        # JPA 리포지토리를 Redis 리포지토리 후보로 검사하며 로그를 남기지 않게 끈다.
-        # @RedisHash 로 Redis 리포지토리를 만들 때만 true 로 바꾼다.
-        enabled: false
-
 logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)
