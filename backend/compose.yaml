@@ -1,0 +1,61 @@
+# 로컬 개발용 컨테이너 구성 (backend/ 에서 실행)
+#   MySQL·Redis만 실행:   docker compose up -d
+#   Spring 앱까지 실행:   docker compose --profile app up -d --build
+#   전부 중지:            docker compose --profile app down
+# 접속 정보는 같은 폴더의 .env 에서 읽는다(Spring과 같은 파일, .env.example 참고).
+name: where-is-it
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      # DB 이름은 .env 의 DB_URL 에 적은 이름과 같아야 한다.
+      MYSQL_DATABASE: where_is_it
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      # 앱은 위 계정만 쓰므로 root 비밀번호는 임의로 생성한다(첫 실행 로그에 출력된다).
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8.10
+    environment:
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # --profile app 을 붙였을 때만 실행된다.
+  app:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      # 컨테이너 안에서는 localhost 대신 서비스 이름으로 접속한다.
+      DB_URL: jdbc:mysql://mysql:3306/where_is_it
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
