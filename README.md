@@ -4,6 +4,8 @@ LG CNS AM INSPIRE 6기 Mini Project 1
 
 > 한국에서 물건을 잃어버린 외국인이 자신의 언어로 분실물을 설명하고, 경찰청의 실제 습득물 정보에서 관련 후보를 찾고 추적하는 서비스입니다.
 
+<img width="1536" height="1024" alt="service-flow" src="https://github.com/user-attachments/assets/8a29459d-7da0-4ef2-9ec9-1ef7f1a39416" />
+
 ## 해결하려는 문제와 핵심 사용자
 
 한국에서 물건을 잃어버린 외국인은 한국어 검색조건을 만들고 경찰청 습득물 정보를 확인하는 데 어려움을 겪을 수 있습니다. Where is it은 사용자의 언어로 받은 설명을 검색조건으로 구조화하고, 실제 조회된 후보를 사용자의 언어로 안내합니다.
@@ -17,6 +19,9 @@ LG CNS AM INSPIRE 6기 Mini Project 1
 5. 사용자는 후보의 사진, 습득 장소, 보관기관과 상세정보를 확인합니다.
 6. 원하는 후보가 없으면 검색조건을 추적 대상으로 등록합니다.
 7. 등록 후 7일 동안 하루 1회 같은 조건으로 재검색하고, 새로운 유사 후보가 발견되면 건수를 포함한 이메일 알림을 보냅니다. 7일이 지나면 추적을 자동 종료합니다.
+
+<img width="1672" height="941" alt="어디갔니 ui 와이어프레임" src="https://github.com/user-attachments/assets/03a97c11-b791-4efd-a55b-42efa43a522c" />
+
 
 ## 핵심 기능
 

@@ -1,0 +1,49 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.16'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// REST API 서버(Spring MVC, 내장 Tomcat, JSON 변환)와 외부 API(경찰청·AI) 호출용 RestClient
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// 요청 값 검증(@Valid, @NotBlank, @Email 등)
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// JPA(Hibernate)로 엔티티와 DB 테이블 매핑, Repository 기반 CRUD
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// 이메일 발송(JavaMailSender, SMTP) - 신규 유사 후보 알림
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	// MySQL JDBC 드라이버 - 실행할 때만 필요해서 runtimeOnly
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// Getter·생성자 등 반복 코드 자동 생성 - 컴파일할 때만 필요해서 compileOnly
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// 테스트 도구 모음(JUnit 5, Mockito, AssertJ, Spring Test)
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// Gradle에서 JUnit 5 테스트를 실행하기 위한 런처
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
