@@ -1,0 +1,8 @@
+# 이미지 빌드에 필요 없는 파일과 비밀값을 빌드 컨텍스트에서 뺀다.
+build/
+.gradle/
+.env
+.env.*
+.vscode/
+.idea/
+*.log
