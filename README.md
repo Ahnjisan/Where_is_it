@@ -45,7 +45,34 @@ AI는 경찰청 API가 실제로 반환한 후보만 평가하며, 존재하지 
 
 ## 저장소와 협업
 
-Frontend와 Backend를 한 저장소에서 관리합니다. 현재 두 프로젝트 디렉터리는 비어 있으며 기술 스택과 실행 명령은 확정되지 않았습니다.
+Frontend와 Backend를 한 저장소에서 관리하며 두 프로젝트 모두 기본 구성이 생성되어 있습니다.
+
+- Backend: Java 17, Spring Boot 3.5.16, Gradle Wrapper 8.14.5
+- Frontend: Next.js 15.5.25, React 19.1.x, JavaScript, npm
+- Database: MySQL 예정. 팀원 PC에 직접 설치하지 않고 별도 Issue에서 Docker Compose 실행 환경을 구성합니다.
+- Redis: 현재 사용하지 않습니다.
+
+### 기본 검증 및 실행
+
+Backend 빌드:
+
+```bash
+cd backend
+./gradlew clean assemble
+```
+
+Windows PowerShell에서는 `./gradlew` 대신 `.\gradlew.bat`을 사용합니다. Backend 실행은 MySQL 환경이 준비된 후 `./gradlew bootRun` 또는 `.\gradlew.bat bootRun`으로 확인합니다.
+
+Frontend 설치, 빌드 및 실행:
+
+```bash
+cd frontend
+npm ci
+npm run build
+npm run dev
+```
+
+Frontend 개발 서버의 기본 주소는 http://localhost:3000 입니다. 자세한 환경 기준과 운영체제별 명령은 [개발 환경 및 실행 가이드](docs/development-guide.md)를 확인하세요.
 
 Issue 등록 → 최신 `main`에서 Issue별 작업 Branch 생성 → 구현·검증 → Commit·Push → PR → 팀원 Review → `main` 병합 → 작업 Branch 삭제 순서로 진행합니다. `main`에 직접 Commit하거나 Push하지 않으며 `develop` Branch는 사용하지 않습니다. 자세한 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인하세요.
 
