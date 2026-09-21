@@ -1,0 +1,19 @@
+# testSqlite Task 전용 설정("sqlite" 프로필이 활성화될 때만 적용).
+# Docker나 backend/.env 없이도 인메모리 SQLite로 테스트를 빠르게 돌리기 위한 용도이며,
+# 실제 DBMS 결정(MySQL)과는 무관하다. bootRun·기본 test Task에는 영향을 주지 않는다.
+spring:
+  datasource:
+    url: "jdbc:sqlite::memory:"
+    username:
+    password:
+    driver-class-name: org.sqlite.JDBC
+    # SQLite 인메모리 DB는 연결마다 별도로 생성되므로, 커넥션을 1개로 고정해
+    # 테스트 도중 다른 커넥션이 빈 DB를 새로 만드는 것을 막는다.
+    hikari:
+      maximum-pool-size: 1
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      # 매 테스트 실행마다 새 스키마를 만들고 종료 시 버린다.
+      ddl-auto: create-drop
