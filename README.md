@@ -49,7 +49,7 @@ Frontend와 Backend를 한 저장소에서 관리하며 두 프로젝트 모두 
 
 - Backend: Java 17, Spring Boot 3.5.16, Gradle Wrapper 8.14.5
 - Frontend: Next.js 15.5.25, React 19.1.x, JavaScript, npm
-- Database: MySQL 예정. 팀원 PC에 직접 설치하지 않고 별도 Issue에서 Docker Compose 실행 환경을 구성합니다.
+- Database: MySQL 8.4. 팀원 PC에 직접 설치하지 않고 `backend/compose.yaml`(Docker Compose)로 실행합니다.
 - Redis: 현재 사용하지 않습니다.
 
 ### 기본 검증 및 실행
@@ -61,7 +61,15 @@ cd backend
 ./gradlew clean assemble
 ```
 
-Windows PowerShell에서는 `./gradlew` 대신 `.\gradlew.bat`을 사용합니다. Backend 실행은 MySQL 환경이 준비된 후 `./gradlew bootRun` 또는 `.\gradlew.bat bootRun`으로 확인합니다.
+Backend 실행(Docker 필요). 처음 한 번은 `backend/.env.example`을 `backend/.env`로 복사하고 `DB_USERNAME`·`DB_PASSWORD` 값을 채웁니다.
+
+```bash
+cd backend
+docker compose up -d --wait
+./gradlew bootRun
+```
+
+Windows PowerShell에서는 `./gradlew` 대신 `.\gradlew.bat`을 사용합니다. MySQL 중지·초기화와 문제 해결은 [개발 환경 및 실행 가이드](docs/development-guide.md)의 5장을 확인하세요.
 
 Frontend 설치, 빌드 및 실행:
 
