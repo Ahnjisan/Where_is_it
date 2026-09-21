@@ -1,0 +1,75 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # backend/compose.yaml과 동일한 패턴(비-root 계정, 임의 root 비밀번호, utf8mb4/Asia-Seoul).
+    # 아래 계정·비밀번호는 이 워크플로우 실행 중에만 존재하는 CI 전용 더미 값이며 실제 비밀정보가 아니다.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: where_is_it
+          MYSQL_USER: citest
+          MYSQL_PASSWORD: citest_password
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          TZ: Asia/Seoul
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/where_is_it
+      DB_USERNAME: citest
+      DB_PASSWORD: citest_password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build
+        run: ./gradlew clean assemble
+
+      - name: Test
+        run: ./gradlew test
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: backend/build/reports/tests/test
