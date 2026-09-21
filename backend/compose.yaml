@@ -1,0 +1,41 @@
+# 로컬 개발용 MySQL (backend/ 에서 실행)
+#   시작:   docker compose up -d --wait   (MySQL이 접속을 받을 수 있을 때까지 기다린다)
+#   중지:   docker compose down           (데이터는 볼륨에 남는다)
+#   초기화: docker compose down -v        (볼륨까지 지운다. 로컬 DB 데이터가 모두 사라진다)
+# 접속 계정은 같은 폴더의 .env 에서 읽는다(Spring과 같은 파일, .env.example 참고).
+# 앱은 컨테이너로 만들지 않고 bootRun 이나 IDE로 실행한다.
+
+# 프로젝트 이름을 정하지 않으면 폴더 이름(backend)이 되어 다른 프로젝트의 컨테이너·볼륨과 겹칠 수 있다.
+name: where-is-it
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      # DB 이름은 .env 의 DB_URL 에 적은 이름과 같아야 한다.
+      MYSQL_DATABASE: where_is_it
+      # 앱이 쓰는 계정. 값이 비어 있으면 계정 없이 초기화되므로 아예 시작하지 않는다.
+      # 계정 값은 볼륨이 처음 만들어질 때만 적용된다. 바꾸면 docker compose down -v 로 초기화한다.
+      MYSQL_USER: "${DB_USERNAME:?backend/.env 에 DB_USERNAME 을 채우세요(.env.example 참고)}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:?backend/.env 에 DB_PASSWORD 를 채우세요(.env.example 참고)}"
+      # 앱은 위 계정만 쓰므로 root 비밀번호는 임의로 만든다(첫 실행 로그에 출력된다).
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      TZ: Asia/Seoul
+      # 컨테이너 안에서 mysql 명령을 쓸 때 utf8mb4로 접속하게 한다.
+      # 없으면 latin1로 접속해서 한글·이모지를 넣으면 깨진 채 저장된다(앱의 JDBC 접속과는 무관).
+      LANG: C.UTF-8
+    ports:
+      # 이 PC에서만 접속하도록 127.0.0.1 에만 연다.
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # 초기화 중에 잠깐 뜨는 임시 서버는 TCP 접속을 받지 않는다.
+      # 그래서 TCP(127.0.0.1)로 확인하면 초기화가 끝난 뒤에만 healthy 가 된다.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  mysql-data:

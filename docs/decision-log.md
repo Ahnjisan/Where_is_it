@@ -22,8 +22,8 @@
 | Frontend 언어 | JavaScript |
 | Node.js | 24.20.0 |
 | Package Manager | npm 11.6.2 |
-| Database | MySQL |
-| 로컬 Database 실행 | 팀원 PC에 직접 설치하지 않고 추후 Docker Compose로 제공 |
+| Database | MySQL 8.4 (LTS) |
+| 로컬 Database 실행 | 팀원 PC에 직접 설치하지 않고 `backend/compose.yaml`(Docker Compose)로 실행. Compose에는 MySQL만 두고 애플리케이션은 로컬에서 실행 |
 | Redis | 현재 도입하지 않음 |
 | AI 결과 범위 | 경찰청 API가 실제 반환한 후보로 제한 |
 | 추적 기간 | 등록 후 7일 |
@@ -50,3 +50,4 @@
 | 2026-09-19 | 개발 환경 기준선 | Java 17, Spring Boot 3.5.16, Gradle Wrapper 8.14.5와 Java 기본 패키지 `com.whereisit` 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Frontend 기준선 | Next.js 15.5.25, React 19.1.x, JavaScript, Node.js 24.20.0, npm 11.6.2 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Database 운영 | MySQL을 사용하고 추후 Docker Compose로 제공하며, 현재 Redis는 도입하지 않음 | Issue #6 | 안지산 |
+| 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | PR 승인 후 기재 |
