@@ -45,10 +45,11 @@ dependencies {
 
 	// testSqlite 전용: Docker/MySQL 없이 빠르게 테스트하기 위한 SQLite JDBC 드라이버.
 	// 실제 DBMS는 계속 MySQL이며, 이 드라이버는 테스트 클래스패스에만 존재한다.
-	testRuntimeOnly 'org.xerial:sqlite-jdbc:3.49.1.0'
+	// 버전은 고정하지 않고 Spring Boot BOM(io.spring.dependency-management)에 맡긴다.
+	testRuntimeOnly 'org.xerial:sqlite-jdbc'
 
-	// SQLite용 Hibernate Dialect. hibernate-core와 같은 버전(6.6.53.Final)을 사용한다.
-	testRuntimeOnly 'org.hibernate.orm:hibernate-community-dialects:6.6.53.Final'
+	// SQLite용 Hibernate Dialect. 버전은 Spring Boot BOM이 관리하며, hibernate-core와 같은 버전으로 맞춰진다.
+	testRuntimeOnly 'org.hibernate.orm:hibernate-community-dialects'
 }
 
 tasks.named('test') {

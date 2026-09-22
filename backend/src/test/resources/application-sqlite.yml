@@ -9,6 +9,9 @@ spring:
     driver-class-name: org.sqlite.JDBC
     # SQLite 인메모리 DB는 연결마다 별도로 생성되므로, 커넥션을 1개로 고정해
     # 테스트 도중 다른 커넥션이 빈 DB를 새로 만드는 것을 막는다.
+    # 한계: 풀이 1개뿐이라 @Transactional(propagation = REQUIRES_NEW)처럼 같은 스레드에서
+    # 커넥션 2개를 동시에 요구하는 코드는 기존 커넥션이 반납되길 기다리다 HikariCP 기본
+    # 타임아웃(30초)으로 실패한다. 이런 코드가 있는 테스트는 testSqlite 대신 test(MySQL)로 확인한다.
     hikari:
       maximum-pool-size: 1
 
