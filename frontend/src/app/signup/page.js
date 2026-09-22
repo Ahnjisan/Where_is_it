@@ -30,9 +30,17 @@ export default function SignupPage() {
       showToast(lang === "ko" ? "이메일 주소 오류입니다." : "Invalid email address.", "error");
       return;
     }
-    if (!password || password.length < 8) {
+    // 비밀번호 제약사항 검증: 최소 8자, 최대 20자, 형식 ^[!-~]{8,20}$ (ASCII 33~126: 영문, 숫자, 특수문자)
+    const passwordRegex = /^[!-~]{8,20}$/;
+    if (!password) {
+      showToast(lang === "ko" ? "비밀번호를 입력해 주세요." : "Please enter your password.", "error");
+      return;
+    }
+    if (!passwordRegex.test(password)) {
       showToast(
-        lang === "ko" ? "비밀번호는 8자 이상이어야 합니다." : "Password must be at least 8 characters.",
+        lang === "ko"
+          ? "비밀번호는 8~20자의 영문, 숫자, 특수문자만 사용 가능합니다."
+          : "Password must be 8-20 characters (letters, numbers, special characters).",
         "error"
       );
       return;
@@ -134,7 +142,8 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.pwPlaceholderSignup}
+              maxLength={20}
+              placeholder={lang === "ko" ? "비밀번호 (8~20자)" : "Password (8-20 chars)"}
               className="w-full h-13 pl-11 pr-4 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
           </div>
@@ -148,6 +157,7 @@ export default function SignupPage() {
               type="password"
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
+              maxLength={20}
               placeholder={t.pwConfirmPlaceholder}
               className="w-full h-13 pl-11 pr-4 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
