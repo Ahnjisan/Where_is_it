@@ -3,14 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Check, ChevronLeft } from "lucide-react";
+import { Mail, Lock, Check, ChevronLeft, MapPin } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { lang, setLang, t, showToast } = useApp();
+  const { lang, setLang, t, showToast, updateUser } = useApp();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,9 +24,23 @@ export default function SignupPage() {
       showToast(lang === "ko" ? "이메일 주소를 입력해 주세요." : "Please enter your email.", "error");
       return;
     }
-    if (!password || password.length < 8) {
+    // 이메일 형식 검사 (예: test@domain.com)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showToast(lang === "ko" ? "이메일 주소 오류입니다." : "Invalid email address.", "error");
+      return;
+    }
+    // 비밀번호 제약사항 검증: 최소 8자, 최대 20자, 형식 ^[!-~]{8,20}$ (ASCII 33~126: 영문, 숫자, 특수문자)
+    const passwordRegex = /^[!-~]{8,20}$/;
+    if (!password) {
+      showToast(lang === "ko" ? "비밀번호를 입력해 주세요." : "Please enter your password.", "error");
+      return;
+    }
+    if (!passwordRegex.test(password)) {
       showToast(
-        lang === "ko" ? "비밀번호는 8자 이상이어야 합니다." : "Password must be at least 8 characters.",
+        lang === "ko"
+          ? "비밀번호는 8~20자의 영문, 숫자, 특수문자만 사용 가능합니다."
+          : "Password must be 8-20 characters (letters, numbers, special characters).",
         "error"
       );
       return;
@@ -46,9 +60,25 @@ export default function SignupPage() {
       return;
     }
 
+    // 백엔드 API 연동 전 전달값 확인 콘솔 로그
+    console.log("[Signup] 회원가입 요청 데이터:", {
+      email,
+      password,
+      passwordConfirm,
+      agreeTerms,
+    });
+
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
+      if (updateUser) {
+        updateUser({
+          email: email.trim(),
+          joinedDate: formattedDate,
+        });
+      }
       showToast(
         lang === "ko" ? "회원가입이 성공적으로 완료되었습니다!" : "Account created successfully!",
         "success"
@@ -71,18 +101,23 @@ export default function SignupPage() {
         </button>
       </div>
 
-      {/* 로고 & 타이틀 */}
-      <div className="my-3">
-        <BrandLogo
-          size="md"
-          subtitle={t.appSubSignup}
-          align="center"
-          lang={lang}
-        />
+      {/* 로고 & 타이틀 (로그인 페이지와 동일한 로고 이미지 & 스타일) */}
+      <div className="my-3 flex flex-col items-center text-center select-none">
+        <div className="w-14 h-14 rounded-full bg-[#85132d] flex items-center justify-center text-white mb-4 shadow-sm">
+          <MapPin className="w-7 h-7 fill-white" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
+          {lang === "ko" ? "어디갔지" : "Where Is It"}
+        </h1>
+        {t.appSubSignup && (
+          <p className="text-sm sm:text-base text-gray-500 font-medium max-w-xs leading-relaxed">
+            {t.appSubSignup}
+          </p>
+        )}
       </div>
 
       {/* 회원가입 폼 */}
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
+      <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
         <div className="space-y-3.5 my-2">
           {/* 이메일 */}
           <div className="relative">
@@ -107,7 +142,8 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.pwPlaceholderSignup}
+              maxLength={20}
+              placeholder={lang === "ko" ? "비밀번호 (8~20자)" : "Password (8-20 chars)"}
               className="w-full h-13 pl-11 pr-4 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
           </div>
@@ -121,6 +157,7 @@ export default function SignupPage() {
               type="password"
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
+              maxLength={20}
               placeholder={t.pwConfirmPlaceholder}
               className="w-full h-13 pl-11 pr-4 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />

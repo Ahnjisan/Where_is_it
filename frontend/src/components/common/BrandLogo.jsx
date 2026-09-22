@@ -8,14 +8,18 @@ export default function BrandLogo({
   subtitle = "",
   align = "center",
   lang = "ko",
+  clickable = true,
 }) {
   const isKo = lang === "ko";
   const titleText = isKo ? "어디갔지" : "Where Is It";
 
   if (size === "sm") {
     return (
-      <div className="flex items-center gap-2.5 cursor-pointer select-none group">
-        <BrandIcon className="w-8 h-8 rounded-xl shadow-xs transition-transform duration-200 group-hover:scale-105" size={32} />
+      <div className={`flex items-center gap-2.5 select-none ${clickable ? "cursor-pointer group" : "cursor-default"}`}>
+        <BrandIcon
+          className={`w-8 h-8 rounded-xl shadow-xs transition-transform duration-200 ${clickable ? "group-hover:scale-105" : ""}`}
+          size={32}
+        />
         <span className="text-xl font-extrabold tracking-tight text-[#191f28] leading-none">
           {titleText}
         </span>

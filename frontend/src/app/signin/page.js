@@ -3,16 +3,16 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Check, ChevronLeft } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Check, ChevronLeft, MapPin } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import { useApp } from "@/context/AppContext";
 
 export default function SigninPage() {
   const router = useRouter();
-  const { lang, t, showToast } = useApp();
+  const { lang, t, showToast, updateUser } = useApp();
 
-  const [email, setEmail] = useState("user@whereisit.kr");
-  const [password, setPassword] = useState("password1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +28,31 @@ export default function SigninPage() {
       return;
     }
 
+    // 이메일 형식 검사 (정규식) 또는 비밀번호 8자 이상 규칙 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim()) || password.length < 8) {
+      showToast(
+        lang === "ko"
+          ? "이메일 및 비밀번호 오류입니다."
+          : "Invalid email or password.",
+        "error"
+      );
+      return;
+    }
+
+    // 백엔드 API 연동 전 전달값 확인 콘솔 로그
+    console.log("[Signin] 로그인 요청 데이터:", {
+      email,
+      password,
+      keepLoggedIn,
+    });
+
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      if (updateUser) {
+        updateUser({ email: email.trim() });
+      }
       showToast(
         lang === "ko" ? "로그인되었습니다. 환영합니다!" : "Welcome back! Successfully logged in.",
         "success"
@@ -53,18 +75,23 @@ export default function SigninPage() {
         </button>
       </div>
 
-      {/* 로고 & 타이틀 */}
-      <div className="my-5">
-        <BrandLogo
-          size="md"
-          subtitle={t.appSubLogin}
-          align="center"
-          lang={lang}
-        />
+      {/* 로고 & 타이틀: 아이콘은 메인(rootpage)의 원형 핀 배지, 폰트 사이즈는 회원가입과 동일 */}
+      <div className="my-4 flex flex-col items-center text-center select-none">
+        <div className="w-14 h-14 rounded-full bg-[#85132d] flex items-center justify-center text-white mb-4 shadow-sm">
+          <MapPin className="w-7 h-7 fill-white" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
+          {lang === "ko" ? "어디갔지" : "Where Is It"}
+        </h1>
+        {t.appSubLogin && (
+          <p className="text-sm sm:text-base text-gray-500 font-medium max-w-xs leading-relaxed">
+            {t.appSubLogin}
+          </p>
+        )}
       </div>
 
       {/* 로그인 폼 */}
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
+      <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
         <div className="space-y-4 my-2">
           {/* 이메일 */}
           <div className="relative">
@@ -75,7 +102,7 @@ export default function SigninPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.emailPlaceholder}
+              placeholder={lang === "ko" ? "이메일 주소" : "Email address"}
               className="w-full h-13 pl-11 pr-4 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
           </div>
@@ -89,7 +116,7 @@ export default function SigninPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.pwPlaceholderLogin}
+              placeholder={lang === "ko" ? "비밀번호 (8자 이상)" : "Password (8+ characters)"}
               className="w-full h-13 pl-11 pr-11 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
             <button
@@ -102,8 +129,8 @@ export default function SigninPage() {
             </button>
           </div>
 
-          {/* 옵션 행: 로그인 상태 유지 & 비밀번호 찾기 */}
-          <div className="flex items-center justify-between pt-1">
+          {/* 옵션 행: 로그인 상태 유지 */}
+          <div className="flex items-center justify-start pt-1">
             <label className="flex items-center gap-2 cursor-pointer select-none group">
               <div
                 className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
@@ -119,21 +146,6 @@ export default function SigninPage() {
                 {t.keepLoggedIn}
               </span>
             </label>
-
-            <button
-              type="button"
-              onClick={() =>
-                showToast(
-                  lang === "ko"
-                    ? "비밀번호 재설정 링크가 이메일로 전송되었습니다."
-                    : "Password reset link has been sent to your email.",
-                  "info"
-                )
-              }
-              className="text-xs sm:text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
-            >
-              {t.findPassword}
-            </button>
           </div>
         </div>
 
