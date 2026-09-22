@@ -93,7 +93,7 @@ export default function HomePage() {
                 key={index}
                 className="w-fit max-w-full px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-xs sm:text-sm font-medium text-gray-700 flex items-center select-none"
               >
-                <span className="truncate">"{prompt}"</span>
+                <span className="truncate">&ldquo;{prompt}&rdquo;</span>
               </div>
             ))}
           </div>

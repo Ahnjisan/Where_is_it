@@ -1,5 +1,6 @@
 # 어디갔지 Where is it
 
+[![Frontend CI](https://github.com/Ahnjisan/Where_is_it/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Ahnjisan/Where_is_it/actions/workflows/frontend-ci.yml)
 [![Backend CI](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml)
 
 LG CNS AM INSPIRE 6기 Mini Project 1
@@ -83,6 +84,14 @@ npm run dev
 ```
 
 Frontend 개발 서버의 기본 주소는 http://localhost:3000 입니다. 자세한 환경 기준과 운영체제별 명령은 [개발 환경 및 실행 가이드](docs/development-guide.md)를 확인하세요.
+
+Frontend Lint·Test:
+
+```bash
+cd frontend
+npm run lint
+npm run test
+```
 
 Issue 등록 → 최신 `main`에서 Issue별 작업 Branch 생성 → 구현·검증 → Commit·Push → PR → 팀원 Review → `main` 병합 → 작업 Branch 삭제 순서로 진행합니다. `main`에 직접 Commit하거나 Push하지 않으며 `develop` Branch는 사용하지 않습니다. 자세한 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인하세요.
 
