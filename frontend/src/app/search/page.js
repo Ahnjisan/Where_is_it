@@ -28,6 +28,7 @@ function ItemThumbnail({ src, alt }) {
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
@@ -190,7 +191,7 @@ function SearchResultsContent() {
         <p className="text-xs sm:text-sm font-medium text-gray-500">
           {searchQuery && (
             <span className="text-[#85132d] font-bold mr-1">
-              '{searchQuery}'
+              &apos;{searchQuery}&apos;
             </span>
           )}
           {t.resultCountPrefix}{" "}
