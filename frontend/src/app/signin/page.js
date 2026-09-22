@@ -9,7 +9,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function SigninPage() {
   const router = useRouter();
-  const { lang, t, showToast } = useApp();
+  const { lang, t, showToast, updateUser } = useApp();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +50,9 @@ export default function SigninPage() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      if (updateUser) {
+        updateUser({ email: email.trim() });
+      }
       showToast(
         lang === "ko" ? "로그인되었습니다. 환영합니다!" : "Welcome back! Successfully logged in.",
         "success"

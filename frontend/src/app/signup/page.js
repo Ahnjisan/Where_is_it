@@ -10,7 +10,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { lang, setLang, t, showToast } = useApp();
+  const { lang, setLang, t, showToast, updateUser } = useApp();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,6 +63,14 @@ export default function SignupPage() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
+      if (updateUser) {
+        updateUser({
+          email: email.trim(),
+          joinedDate: formattedDate,
+        });
+      }
       showToast(
         lang === "ko" ? "회원가입이 성공적으로 완료되었습니다!" : "Account created successfully!",
         "success"

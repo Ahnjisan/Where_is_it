@@ -11,6 +11,34 @@ export function AppProvider({ children }) {
   const [items, setItems] = useState(INITIAL_LOST_ITEMS);
   const [trackingData, setTrackingData] = useState(INITIAL_TRACKING_LIST);
   const [toast, setToast] = useState({ message: "", type: "success" });
+  const [user, setUser] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("where_user");
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {
+      email: "user@whereisit.kr",
+      joinedDate: "2025.09.01",
+    };
+  });
+
+  const updateUser = (userData) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...userData };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("where_user", JSON.stringify(updated));
+        } catch (e) {
+          // ignore
+        }
+      }
+      return updated;
+    });
+  };
 
   const t = I18N[lang] || I18N.ko;
 
@@ -98,6 +126,8 @@ export function AppProvider({ children }) {
         t,
         items,
         trackingData,
+        user,
+        updateUser,
         showToast,
         toggleLike,
         addTracking,
