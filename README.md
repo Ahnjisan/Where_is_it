@@ -1,6 +1,7 @@
 # 어디갔지 Where is it
 
 [![Frontend CI](https://github.com/Ahnjisan/Where_is_it/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Ahnjisan/Where_is_it/actions/workflows/frontend-ci.yml)
+[![Backend CI](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml)
 
 LG CNS AM INSPIRE 6기 Mini Project 1
 
