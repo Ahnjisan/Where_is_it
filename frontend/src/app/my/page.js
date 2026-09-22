@@ -8,16 +8,30 @@ import {
   User,
   Globe,
   Shield,
+  LogOut,
 } from "lucide-react";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
 
 export default function MyPage() {
   const router = useRouter();
-  const { lang, setLang, user } = useApp();
+  const { lang, setLang, user, logoutUser, showToast } = useApp();
 
   const userEmail = user?.email || "user@whereisit.kr";
   const userJoinedDate = user?.joinedDate || "2025.09.22";
+
+  const handleLogout = () => {
+    console.log("[MyPage] 로그아웃 버튼 클릭됨. 사용자 이메일:", userEmail);
+    if (logoutUser) {
+      logoutUser();
+    }
+    showToast(
+      lang === "ko" ? "로그아웃되었습니다." : "Logged out successfully.",
+      "info"
+    );
+    console.log("[MyPage] /signin 경로로 이동");
+    router.push("/signin");
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-[#f8f9fa] animate-in fade-in duration-200 pb-20">
@@ -37,11 +51,22 @@ export default function MyPage() {
           </h1>
         </div>
 
-        <LanguageSelector
-          currentLang={lang}
-          onChangeLang={setLang}
-          variant="badge"
-        />
+        <div className="flex items-center gap-2">
+          <LanguageSelector
+            currentLang={lang}
+            onChangeLang={setLang}
+            variant="badge"
+          />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 hover:text-[#85132d] hover:bg-[#fff1f3] border border-gray-200/80 transition-all active:scale-95 cursor-pointer"
+            title={lang === "ko" ? "로그아웃" : "Log out"}
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{lang === "ko" ? "로그아웃" : "Log out"}</span>
+          </button>
+        </div>
       </header>
 
       <div className="p-4 space-y-4">

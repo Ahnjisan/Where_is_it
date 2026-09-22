@@ -40,6 +40,19 @@ export function AppProvider({ children }) {
     });
   };
 
+  const logoutUser = () => {
+    console.log("[AppContext] 로그아웃 실행 - 이전 사용자 정보:", user);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("where_user");
+      } catch (e) {
+        // ignore
+      }
+    }
+    setUser(null);
+    console.log("[AppContext] 사용자 세션 초기화 완료");
+  };
+
   const t = I18N[lang] || I18N.ko;
 
   const showToast = (message, type = "success") => {
@@ -160,6 +173,7 @@ export function AppProvider({ children }) {
         trackingData,
         user,
         updateUser,
+        logoutUser,
         showToast,
         toggleLike,
         addTracking,
