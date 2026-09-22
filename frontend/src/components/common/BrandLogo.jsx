@@ -33,8 +33,8 @@ export default function BrandLogo({
         align === "center" ? "items-center text-center" : "items-start text-left"
       } select-none`}
     >
-      <div className="mb-3.5 transition-transform duration-200 hover:scale-105">
-        <BrandIcon className="w-16 h-16 rounded-2xl shadow-md" size={64} />
+      <div className="mb-3 transition-transform duration-200 hover:scale-105">
+        <BrandIcon className="w-14 h-14 rounded-2xl shadow-sm" size={56} />
       </div>
       <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
         {titleText}
