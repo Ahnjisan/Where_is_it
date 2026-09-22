@@ -16,6 +16,9 @@ concurrency:
   group: frontend-ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   lint-test-build:
     runs-on: ubuntu-latest
