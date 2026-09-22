@@ -189,11 +189,20 @@ export const INITIAL_TRACKING_LIST = {
   ],
 };
 
-export const EXAMPLE_PROMPTS = [
-  "서울역에서 검은 지갑을 잃어버렸어요",
-  "어제 강남에서 아이폰을 분실했어요",
-  "지하철에서 가방을 놓고 내렸어요",
-];
+export const EXAMPLE_PROMPTS_BY_LANG = {
+  ko: [
+    "서울역에서 검은 지갑을 잃어버렸어요",
+    "어제 강남에서 아이폰을 분실했어요",
+    "지하철에서 가방을 놓고 내렸어요",
+  ],
+  en: [
+    "I lost a black wallet at Seoul Station",
+    "I lost my iPhone in Gangnam yesterday",
+    "I left my bag on the subway",
+  ],
+};
+
+export const EXAMPLE_PROMPTS = EXAMPLE_PROMPTS_BY_LANG.ko;
 
 export const CATEGORIES = [
   "전체",
@@ -261,9 +270,10 @@ export const I18N = {
     // 메인
     mainQuestion: "어떤 물건을 잃어버리셨나요?",
     mainSub:
-      "자연어로 자유롭게 설명해 주세요. AI가 한국의 습득물 정보를 찾아드립니다.",
+      "자연어로 자유롭게 설명해 주세요.\nAI가 한국의 습득물 정보를 찾아드립니다.",
     examplePromptLabel: "예시로 질문해보세요",
     searchPlaceholder: "잃어버린 물건에 대해 자세히 설명해 주세요...",
+    enterToSearch: "Enter를 눌러 검색",
 
     // 네비게이션
     navHome: "홈",
@@ -340,9 +350,10 @@ export const I18N = {
     // 메인
     mainQuestion: "What did you lose?",
     mainSub:
-      "Describe it naturally in your own words. AI searches found item records across Korea.",
+      "Describe it naturally in your own words.\nAI searches found item records across Korea.",
     examplePromptLabel: "Try asking like this",
     searchPlaceholder: "Please describe what you lost in detail...",
+    enterToSearch: "Press Enter to search",
 
     // 네비게이션
     navHome: "Home",
