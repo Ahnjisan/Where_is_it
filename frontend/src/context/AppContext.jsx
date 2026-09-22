@@ -98,15 +98,23 @@ export function AppProvider({ children }) {
         ]
       };
     });
-    showToast(lang === "ko" ? "추적이 종료되었습니다." : "Tracking has ended.", "info");
+    showToast(lang === "ko" ? "추적이 종료되었습니다. (종료됨으로 이동)" : "Tracking has ended.", "info");
   };
 
   const extendTracking = (trackId) => {
     setTrackingData((prev) => ({
       ...prev,
-      active: prev.active.map((it) =>
-        it.id === trackId ? { ...it, dDay: "D-14" } : it
-      )
+      active: prev.active.map((it) => {
+        if (it.id !== trackId) return it;
+        const baseDate = it.endDate ? new Date(it.endDate) : new Date();
+        baseDate.setDate(baseDate.getDate() + 7);
+        const newEndDate = baseDate.toISOString().slice(0, 10);
+        return {
+          ...it,
+          endDate: newEndDate,
+          dDay: "D-14"
+        };
+      })
     }));
     showToast(
       lang === "ko" ? "추적 기간이 7일 연장되었습니다." : "Tracking period extended by 7 days.",

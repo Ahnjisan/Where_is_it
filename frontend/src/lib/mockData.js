@@ -167,7 +167,7 @@ export const INITIAL_TRACKING_LIST = {
       prompt: "홍대입구역 인근 카페 테이블에 두고 온 흰색 에어팟 프로 2세대 본체입니다.",
       registeredDate: "2025-08-15",
       endDate: "2025-08-22",
-      statusText: "수령 완료",
+      statusText: "추적 종료",
       candidatesCount: 3,
       category: "전자기기",
       color: "흰색",
@@ -319,8 +319,23 @@ export const I18N = {
     tabCompleted: "종료됨",
     registeredAt: "등록일",
     expiresAt: "추적 종료",
-    additionalCandidates: "추가 후보",
-    editBtn: "수정",
+    additionalCandidates: "새 후보",
+    noCandidates: "후보 0건",
+    endTrackingBtn: "추적 종료",
+    statusEnded: "추적 종료",
+    statusExpired: "기한 만료",
+
+    // 종료 확인 모달
+    confirmEndTitle: "정말로 종료하시겠습니까?",
+    confirmEndDesc: "추적을 종료하면 더 이상 신규 알림을 받지 않으며,\n'종료됨' 탭으로 이동합니다.",
+    cancelBtn: "취소",
+    confirmEndBtn: "종료하기",
+
+    // 빈 화면
+    emptyActiveTitle: "추적 중인 분실물이 없습니다.",
+    emptyCompletedTitle: "종료된 분실물 추적 내역이 없습니다.",
+    emptyDesc: "새로운 분실물을 검색하고 분실물 알림을 등록해보세요.",
+    searchLostItemBtn: "분실물 검색하러 가기",
 
     // 알림 토스트
     toastTrackingSuccess:
@@ -400,7 +415,22 @@ export const I18N = {
     registeredAt: "Registered",
     expiresAt: "Expires",
     additionalCandidates: "New candidates",
-    editBtn: "Edit",
+    noCandidates: "0 candidates",
+    endTrackingBtn: "End Tracking",
+    statusEnded: "Ended",
+    statusExpired: "Expired",
+
+    // 종료 확인 모달
+    confirmEndTitle: "Are you sure you want to end tracking?",
+    confirmEndDesc: "Ending tracking means you will no longer receive new alerts, and this item will move to the 'Completed' tab.",
+    cancelBtn: "Cancel",
+    confirmEndBtn: "End Tracking",
+
+    // 빈 화면
+    emptyActiveTitle: "No active tracking items.",
+    emptyCompletedTitle: "No completed tracking history.",
+    emptyDesc: "Search for lost items and register for match alerts.",
+    searchLostItemBtn: "Search Lost Items",
 
     // 알림 토스트
     toastTrackingSuccess:
