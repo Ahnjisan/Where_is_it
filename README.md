@@ -1,5 +1,7 @@
 # 어디갔지 Where is it
 
+[![Backend CI](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Ahnjisan/Where_is_it/actions/workflows/backend-ci.yml)
+
 LG CNS AM INSPIRE 6기 Mini Project 1
 
 > 한국에서 물건을 잃어버린 외국인이 자신의 언어로 분실물을 설명하고, 경찰청의 실제 습득물 정보에서 관련 후보를 찾고 추적하는 서비스입니다.
