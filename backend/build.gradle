@@ -42,8 +42,26 @@ dependencies {
 
 	// Gradle에서 JUnit 5 테스트를 실행하기 위한 런처
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// testSqlite 전용: Docker/MySQL 없이 빠르게 테스트하기 위한 SQLite JDBC 드라이버.
+	// 실제 DBMS는 계속 MySQL이며, 이 드라이버는 테스트 클래스패스에만 존재한다.
+	testRuntimeOnly 'org.xerial:sqlite-jdbc:3.49.1.0'
+
+	// SQLite용 Hibernate Dialect. hibernate-core와 같은 버전(6.6.53.Final)을 사용한다.
+	testRuntimeOnly 'org.hibernate.orm:hibernate-community-dialects:6.6.53.Final'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Docker/MySQL 없이 SQLite(인메모리)로 빠르게 테스트만 실행하는 Task.
+// 기본 test Task는 그대로 MySQL(.env/compose.yaml)을 사용한다.
+tasks.register('testSqlite', Test) {
+	group = 'verification'
+	description = 'Docker/MySQL 없이 SQLite로 빠르게 테스트를 실행합니다.'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform()
+	systemProperty 'spring.profiles.active', 'sqlite'
 }
