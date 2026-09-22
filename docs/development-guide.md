@@ -81,6 +81,26 @@ cd backend
 ./gradlew test
 ```
 
+### SQLite 옵션 (`testSqlite`)
+
+Docker나 MySQL 없이 Backend 테스트만 빠르게 실행하고 싶을 때 사용합니다. 인메모리 SQLite로 실행하므로 5장의 MySQL 실행 절차가 필요 없습니다. 실제 DBMS 결정(MySQL)에는 영향을 주지 않는 로컬 개발 편의용 옵션입니다.
+
+```bash
+cd backend
+./gradlew testSqlite
+```
+
+`test`(MySQL)와의 차이는 다음과 같습니다.
+
+| 구분 | `test` | `testSqlite` |
+| --- | --- | --- |
+| Database | MySQL 8.4 (Docker Compose) | SQLite 인메모리 |
+| 사전 준비 | 5장의 Docker Compose 실행 | 없음 |
+| 커넥션 풀 | 기본 설정 | 1개로 고정 |
+| 용도 | 실제 배포 대상과 동일한 DB로 검증 | Docker 없이 빠른 로컬 확인 |
+
+`testSqlite`는 커넥션이 1개로 고정되어 있어 `@Transactional(propagation = REQUIRES_NEW)`처럼 같은 스레드에서 커넥션 2개를 동시에 요구하는 코드는 실패합니다. 이런 코드가 포함된 테스트는 `test`(MySQL)로만 확인하고, 최종 검증 기준은 항상 `test`입니다.
+
 ## 4. Frontend 설치, 빌드 및 실행
 
 Frontend는 Node.js 24.20.0과 npm 11.6.2를 기준으로 합니다. `.nvmrc`와 `package.json`에 버전 기준이 기록되어 있습니다.
