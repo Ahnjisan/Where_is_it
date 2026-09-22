@@ -72,7 +72,24 @@ function SearchResultsContent() {
   };
 
   const handleRegisterTrackingClick = () => {
-    addTracking(searchQuery || "분실물");
+    const title = searchQuery
+      ? searchQuery.slice(0, 20)
+      : filters.category && filters.category !== "전체"
+      ? `${filters.category} 분실물`
+      : "분실물 추적";
+
+    const prompt = searchQuery
+      ? searchQuery
+      : `${filters.category && filters.category !== "전체" ? `[${filters.category}]` : ""} ${filters.color || ""} 분실물 실시간 매칭 요청`;
+
+    addTracking({
+      title,
+      prompt,
+      category: filters.category && filters.category !== "전체" ? filters.category : "기타",
+      color: filters.color || "미지정",
+      location: (filters.location && filters.location !== "전체") ? filters.location : "알 수 없음"
+    });
+
     setTimeout(() => {
       router.push("/tracking");
     }, 500);

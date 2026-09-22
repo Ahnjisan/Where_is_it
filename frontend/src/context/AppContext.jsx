@@ -35,18 +35,42 @@ export function AppProvider({ children }) {
     );
   };
 
-  const addTracking = (itemName, category = "지갑", color = "검정색", location = "서울역 일대") => {
+  const addTracking = (params) => {
+    let title = "분실물 추적";
+    let prompt = "";
+    let category = "지갑";
+    let color = "검정색";
+    let location = "알 수 없음";
+
+    if (typeof params === "string") {
+      title = params.trim() || "분실물 추적";
+      prompt = params.trim() || "등록된 분실 정황 설명이 없습니다.";
+    } else if (params && typeof params === "object") {
+      title = params.title || params.itemName || params.query || "분실물 추적";
+      prompt = params.prompt || params.query || params.description || title;
+      category = params.category || "지갑";
+      color = params.color || "검정색";
+      const rawLoc = params.location ? params.location.trim() : "";
+      location = (!rawLoc || rawLoc === "전체" || rawLoc.includes("전체/") || rawLoc.includes("미지정") || rawLoc.includes("알수없음") || rawLoc.includes("알 수 없음"))
+        ? "알 수 없음"
+        : rawLoc;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
     const newTrack = {
       id: `track-${Date.now()}`,
-      name: itemName || "새 분실물",
-      registeredDate: new Date().toISOString().slice(0, 10),
-      endDate: "2025-09-28",
+      title,
+      name: title,
+      prompt,
+      registeredDate: today,
+      endDate: end,
       dDay: "D-7",
       candidatesCount: 0,
       category,
       color,
-      location,
-      thumbnail: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=300&q=80"
+      location
     };
 
     setTrackingData((prev) => ({
