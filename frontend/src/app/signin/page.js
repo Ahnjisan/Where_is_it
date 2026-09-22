@@ -28,8 +28,9 @@ export default function SigninPage() {
       return;
     }
 
-    // 이메일 규칙(@ 포함) 또는 비밀번호 8자 이상 규칙 검증
-    if (!email.includes("@") || password.length < 8) {
+    // 이메일 형식 검사 (정규식) 또는 비밀번호 8자 이상 규칙 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim()) || password.length < 8) {
       showToast(
         lang === "ko"
           ? "이메일 및 비밀번호 오류입니다."

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Check, ChevronLeft } from "lucide-react";
+import { Mail, Lock, Check, ChevronLeft, MapPin } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
@@ -22,6 +22,12 @@ export default function SignupPage() {
     e.preventDefault();
     if (!email) {
       showToast(lang === "ko" ? "이메일 주소를 입력해 주세요." : "Please enter your email.", "error");
+      return;
+    }
+    // 이메일 형식 검사 (예: test@domain.com)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showToast(lang === "ko" ? "이메일 주소 오류입니다." : "Invalid email address.", "error");
       return;
     }
     if (!password || password.length < 8) {
@@ -45,6 +51,14 @@ export default function SignupPage() {
       );
       return;
     }
+
+    // 백엔드 API 연동 전 전달값 확인 콘솔 로그
+    console.log("[Signup] 회원가입 요청 데이터:", {
+      email,
+      password,
+      passwordConfirm,
+      agreeTerms,
+    });
 
     setIsLoading(true);
     setTimeout(() => {
@@ -71,18 +85,23 @@ export default function SignupPage() {
         </button>
       </div>
 
-      {/* 로고 & 타이틀 */}
-      <div className="my-3">
-        <BrandLogo
-          size="md"
-          subtitle={t.appSubSignup}
-          align="center"
-          lang={lang}
-        />
+      {/* 로고 & 타이틀 (로그인 페이지와 동일한 로고 이미지 & 스타일) */}
+      <div className="my-3 flex flex-col items-center text-center select-none">
+        <div className="w-14 h-14 rounded-full bg-[#85132d] flex items-center justify-center text-white mb-4 shadow-sm">
+          <MapPin className="w-7 h-7 fill-white" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
+          {lang === "ko" ? "어디갔지" : "Where Is It"}
+        </h1>
+        {t.appSubSignup && (
+          <p className="text-sm sm:text-base text-gray-500 font-medium max-w-xs leading-relaxed">
+            {t.appSubSignup}
+          </p>
+        )}
       </div>
 
       {/* 회원가입 폼 */}
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
+      <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
         <div className="space-y-3.5 my-2">
           {/* 이메일 */}
           <div className="relative">
