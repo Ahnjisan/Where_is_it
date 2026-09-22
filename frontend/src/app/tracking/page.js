@@ -9,7 +9,6 @@ import {
   Search,
   AlertCircle
 } from "lucide-react";
-import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
 
 export default function TrackingPage() {
@@ -53,11 +52,7 @@ export default function TrackingPage() {
           </h1>
         </div>
 
-        <LanguageSelector
-          currentLang={lang}
-          onChangeLang={setLang}
-          variant="badge"
-        />
+        <div className="w-8" />
       </header>
 
       {/* 상단 탭: [진행 중 (N)] / [종료됨 (N)] */}

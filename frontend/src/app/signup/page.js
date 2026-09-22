@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Check, ChevronLeft, MapPin } from "lucide-react";
+import { Mail, Lock, Check, ChevronLeft } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
@@ -101,19 +101,14 @@ export default function SignupPage() {
         </button>
       </div>
 
-      {/* 로고 & 타이틀 (로그인 페이지와 동일한 로고 이미지 & 스타일) */}
-      <div className="my-3 flex flex-col items-center text-center select-none">
-        <div className="w-14 h-14 rounded-full bg-[#85132d] flex items-center justify-center text-white mb-4 shadow-sm">
-          <MapPin className="w-7 h-7 fill-white" />
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
-          {lang === "ko" ? "어디갔지" : "Where Is It"}
-        </h1>
-        {t.appSubSignup && (
-          <p className="text-sm sm:text-base text-gray-500 font-medium max-w-xs leading-relaxed">
-            {t.appSubSignup}
-          </p>
-        )}
+      {/* 로고 & 타이틀 */}
+      <div className="my-3">
+        <BrandLogo
+          size="md"
+          subtitle={t.appSubSignup}
+          align="center"
+          lang={lang}
+        />
       </div>
 
       {/* 회원가입 폼 */}

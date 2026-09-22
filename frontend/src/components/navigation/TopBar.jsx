@@ -3,7 +3,6 @@
 import React from "react";
 import { ChevronLeft, Heart, Share2, User } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
-import LanguageSelector from "@/components/common/LanguageSelector";
 import { I18N } from "@/lib/mockData";
 
 export default function TopBar({
@@ -11,7 +10,6 @@ export default function TopBar({
   showBack = false,
   onBack,
   showLogo = false,
-  showLang = true,
   lang = "ko",
   onChangeLang,
   rightActions = null,
@@ -53,13 +51,6 @@ export default function TopBar({
 
         {/* 우측 영역 */}
         <div className="flex items-center gap-2">
-          {showLang && (
-            <LanguageSelector
-              currentLang={lang}
-              onChangeLang={onChangeLang}
-              variant="badge"
-            />
-          )}
 
           {/* 상세화면 액션 버튼: 하트 & 공유 */}
           {onToggleLike && (

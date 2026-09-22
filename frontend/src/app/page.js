@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Send, User } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
-import LanguageSelector from "@/components/common/LanguageSelector";
 import { EXAMPLE_PROMPTS_BY_LANG } from "@/lib/mockData";
 import { useApp } from "@/context/AppContext";
 
@@ -55,24 +54,14 @@ export default function HomePage() {
           <BrandLogo size="sm" lang={lang} />
         </Link>
 
-        <div className="flex items-center gap-2">
-          <LanguageSelector
-            currentLang={lang}
-            onChangeLang={(newLang) => {
-              console.log("[HomePage] Language changed to:", newLang);
-              setLang(newLang);
-            }}
-            variant="badge"
-          />
-          <Link
-            href="/my"
-            onClick={() => console.log("[HomePage] MyPage link clicked")}
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-all active:scale-95"
-            aria-label="마이페이지"
-          >
-            <User className="w-5 h-5" />
-          </Link>
-        </div>
+        {/* <Link
+          href="/my"
+          onClick={() => console.log("[HomePage] MyPage link clicked")}
+          className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-all active:scale-95"
+          aria-label="마이페이지"
+        >
+          <User className="w-5 h-5" />
+        </Link> */}
       </header>
 
       {/* 중앙 메인 컨텐츠 영역 */}

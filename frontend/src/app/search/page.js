@@ -12,7 +12,6 @@ import {
   PlusCircle,
   ImageOff,
 } from "lucide-react";
-import LanguageSelector from "@/components/common/LanguageSelector";
 import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
 
@@ -142,11 +141,7 @@ function SearchResultsContent() {
           </h1>
         </div>
 
-        <LanguageSelector
-          currentLang={lang}
-          onChangeLang={setLang}
-          variant="badge"
-        />
+        <div className="w-8" />
       </header>
 
       {/* 정렬 탭 & 필터 보정 버튼 */}

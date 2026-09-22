@@ -51,12 +51,7 @@ export default function MyPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
-          <LanguageSelector
-            currentLang={lang}
-            onChangeLang={setLang}
-            variant="badge"
-          />
+        <div className="flex items-center">
           <button
             type="button"
             onClick={handleLogout}

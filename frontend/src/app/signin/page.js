@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Check, ChevronLeft, MapPin } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Check, ChevronLeft } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import { useApp } from "@/context/AppContext";
 
@@ -75,19 +75,14 @@ export default function SigninPage() {
         </button>
       </div>
 
-      {/* 로고 & 타이틀: 아이콘은 메인(rootpage)의 원형 핀 배지, 폰트 사이즈는 회원가입과 동일 */}
-      <div className="my-4 flex flex-col items-center text-center select-none">
-        <div className="w-14 h-14 rounded-full bg-[#85132d] flex items-center justify-center text-white mb-4 shadow-sm">
-          <MapPin className="w-7 h-7 fill-white" />
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#191f28] mb-2">
-          {lang === "ko" ? "어디갔지" : "Where Is It"}
-        </h1>
-        {t.appSubLogin && (
-          <p className="text-sm sm:text-base text-gray-500 font-medium max-w-xs leading-relaxed">
-            {t.appSubLogin}
-          </p>
-        )}
+      {/* 로고 & 타이틀 */}
+      <div className="my-4">
+        <BrandLogo
+          size="md"
+          subtitle={t.appSubLogin}
+          align="center"
+          lang={lang}
+        />
       </div>
 
       {/* 로그인 폼 */}
