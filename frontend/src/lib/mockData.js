@@ -283,12 +283,13 @@ export const I18N = {
     trackRegisterCta: "내 분실물이 없나요? 추적 등록하기",
 
     // 상세
-    foundDate: "습득일자",
+    storageDate: "보관일자",
     foundLocation: "습득장소",
-    storageFacility: "보관기관",
+    storageFacility: "보관 장소",
     categoryLabel: "분류",
     colorLabel: "색상",
-    detailDesc: "상세설명",
+    facilityPhone: "기관 전화번호",
+    detailDesc: "분실물 상세 설명",
     contactFacility: "보관기관 문의하기",
 
     // 조건 보정 모달
@@ -361,12 +362,13 @@ export const I18N = {
     trackRegisterCta: "Can't find your item? Start Tracking",
 
     // 상세
-    foundDate: "Found Date",
+    storageDate: "Storage Date",
     foundLocation: "Found Location",
-    storageFacility: "Holding Facility",
+    storageFacility: "Holding Place",
     categoryLabel: "Category",
     colorLabel: "Color",
-    detailDesc: "Details",
+    facilityPhone: "Facility Phone",
+    detailDesc: "Item Description",
     contactFacility: "Contact Facility",
 
     // 조건 보정 모달
