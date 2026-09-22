@@ -71,10 +71,7 @@ export const INITIAL_LOST_ITEMS = [
     description: "빈티지 브라운 장지갑입니다. 명함 및 영수증이 들어있습니다.",
     phone: "02-3484-8344",
     operatingHours: "평일 09:00 ~ 18:00",
-    images: [
-      "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80",
-    ],
+    images: [],
     isLiked: false,
   },
   {

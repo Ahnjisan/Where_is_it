@@ -9,11 +9,33 @@ import {
   Calendar,
   MapPin,
   Sparkles,
-  PlusCircle
+  PlusCircle,
+  ImageOff,
 } from "lucide-react";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
+
+function ItemThumbnail({ src, alt }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-xl text-gray-400 gap-1 select-none">
+        <ImageOff className="w-5 h-5 text-gray-300 stroke-[1.8]" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setHasError(true)}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+    />
+  );
+}
 
 function SearchResultsContent() {
   const router = useRouter();
@@ -28,7 +50,7 @@ function SearchResultsContent() {
   const [filters, setFilters] = useState({
     category: "전체",
     color: "전체",
-    lostDate: ""
+    lostDate: "",
   });
 
   const filteredItems = useMemo(() => {
@@ -36,7 +58,7 @@ function SearchResultsContent() {
 
     if (filters.category && filters.category !== "전체") {
       list = list.filter(
-        (item) => (item.category || item.mainCategory) === filters.category
+        (item) => (item.category || item.mainCategory) === filters.category,
       );
     }
     if (filters.color && filters.color !== "전체") {
@@ -62,12 +84,12 @@ function SearchResultsContent() {
         lang === "ko"
           ? `'${newFilters.nlQuery}' 조건으로 검색했습니다.`
           : `Searched for '${newFilters.nlQuery}'.`,
-        "info"
+        "info",
       );
     }
     setFilters((prev) => ({
       ...prev,
-      ...newFilters
+      ...newFilters,
     }));
   };
 
@@ -75,8 +97,8 @@ function SearchResultsContent() {
     const title = searchQuery
       ? searchQuery.slice(0, 20)
       : filters.category && filters.category !== "전체"
-      ? `${filters.category} 분실물`
-      : "분실물 추적";
+        ? `${filters.category} 분실물`
+        : "분실물 추적";
 
     const prompt = searchQuery
       ? searchQuery
@@ -85,9 +107,15 @@ function SearchResultsContent() {
     addTracking({
       title,
       prompt,
-      category: filters.category && filters.category !== "전체" ? filters.category : "기타",
+      category:
+        filters.category && filters.category !== "전체"
+          ? filters.category
+          : "기타",
       color: filters.color || "미지정",
-      location: (filters.location && filters.location !== "전체") ? filters.location : "알 수 없음"
+      location:
+        filters.location && filters.location !== "전체"
+          ? filters.location
+          : "알 수 없음",
     });
 
     setTimeout(() => {
@@ -166,7 +194,9 @@ function SearchResultsContent() {
             </span>
           )}
           {t.resultCountPrefix}{" "}
-          <strong className="text-gray-900 font-bold">{filteredItems.length}</strong>
+          <strong className="text-gray-900 font-bold">
+            {filteredItems.length}
+          </strong>
           {t.resultCountSuffix}
         </p>
       </div>
@@ -181,10 +211,9 @@ function SearchResultsContent() {
           >
             {/* 분실물 썸네일 이미지 */}
             <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative mt-0.5">
-              <img
+              <ItemThumbnail
                 src={item.images?.[0] || item.image}
                 alt={item.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
 
@@ -222,7 +251,9 @@ function SearchResultsContent() {
                 </div>
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="truncate">{item.storageFacility || item.location}</span>
+                  <span className="truncate">
+                    {item.storageFacility || item.location}
+                  </span>
                 </div>
               </div>
             </div>
