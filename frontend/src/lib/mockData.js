@@ -3,7 +3,7 @@
 export const INITIAL_LOST_ITEMS = [
   {
     id: "item-1",
-    name: "지갑 (검정색)",
+    name: "가죽 반지갑",
     matchRate: 98,
     date: "2025-09-14",
     location: "서울역 (서울특별시)",
@@ -23,7 +23,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-2",
-    name: "지갑 (남색)",
+    name: "슬림 사피아노 반지갑",
     matchRate: 92,
     date: "2025-09-13",
     location: "시청역 (서울특별시)",
@@ -42,7 +42,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-3",
-    name: "카드지갑 (검정색)",
+    name: "목걸이형 카드홀더",
     matchRate: 88,
     date: "2025-09-12",
     location: "사당역 (서울특별시)",
@@ -61,7 +61,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-4",
-    name: "지갑 (갈색)",
+    name: "빈티지 브라운 장지갑",
     matchRate: 76,
     date: "2025-09-11",
     location: "강남구청 (서울특별시)",
@@ -79,12 +79,12 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-5",
-    name: "아이폰 (흰색/실버)",
+    name: "아이폰 14 프로 실버",
     matchRate: 95,
     date: "2025-09-15",
     location: "강남역 2번 출구 부근",
     storageFacility: "역삼지구대",
-    category: "전자기기",
+    category: "휴대폰",
     color: "흰색",
     description:
       "투명 범퍼 케이스 착용된 스마트폰. 잠금화면에 고양이 배경화면 설정됨.",
@@ -98,7 +98,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-6",
-    name: "백팩 (회색)",
+    name: "비즈니스 방수 백팩",
     matchRate: 90,
     date: "2025-09-13",
     location: "2호선 열차 내 (신도림역 방면)",
@@ -197,12 +197,25 @@ export const EXAMPLE_PROMPTS = [
 
 export const CATEGORIES = [
   "전체",
-  "지갑",
-  "전자기기",
   "가방",
   "귀금속",
+  "도서용품",
+  "서류",
+  "산업용품",
+  "쇼핑백",
+  "스포츠용품",
+  "악기",
+  "유가증권",
   "의류",
-  "기타",
+  "자동차",
+  "전자기기",
+  "지갑",
+  "증명서",
+  "컴퓨터",
+  "카드",
+  "현금",
+  "휴대폰",
+  "기타물품",
 ];
 export const COLORS = [
   "전체",
@@ -283,11 +296,11 @@ export const I18N = {
     tabNaturalLanguage: "자연어 보정",
     tabDetailFilter: "상세 필터",
     nlPromptHeader: "더 정확한 검색을 위해 조건을 추가해보세요.",
-    nlPromptPlaceholder: "예) 삼성 지갑이었어요, 안에 카드가 여러 장 있었어요.",
+    nlPromptPlaceholder: "예) 강남역 부근에서 잃어버린 검정 지갑",
+    nlApplyBtn: "자연어로 조건 보정하기",
     manualFilterHeader: "직접 설정하기",
-    startDate: "습득일 (시작)",
-    endDate: "습득일 (종료)",
-    applyFilterBtn: "이 조건으로 다시 검색하기",
+    lostDate: "분실한 날짜",
+    applyFilterBtn: "필터 적용하기",
 
     // 추적 관리
     trackingTitle: "내 분실물 추적",
@@ -361,12 +374,11 @@ export const I18N = {
     tabNaturalLanguage: "Natural Language",
     tabDetailFilter: "Detailed Filters",
     nlPromptHeader: "Add more details to find your exact match.",
-    nlPromptPlaceholder:
-      "e.g. It was a black leather wallet with transit cards inside.",
+    nlPromptPlaceholder: "e.g. Black wallet lost near Gangnam Station",
+    nlApplyBtn: "Search with Natural Language",
     manualFilterHeader: "Manual Filter Settings",
-    startDate: "Found Date (From)",
-    endDate: "Found Date (To)",
-    applyFilterBtn: "Search with these filters",
+    lostDate: "Date Lost",
+    applyFilterBtn: "Apply Filters",
 
     // 추적 관리
     trackingTitle: "Lost Item Tracking",

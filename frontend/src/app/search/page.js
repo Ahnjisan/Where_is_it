@@ -8,8 +8,6 @@ import {
   SlidersHorizontal,
   Calendar,
   MapPin,
-  Heart,
-  Send,
   Sparkles,
   PlusCircle
 } from "lucide-react";
@@ -22,7 +20,7 @@ function SearchResultsContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "검은 지갑";
 
-  const { lang, setLang, t, items, toggleLike, addTracking, showToast } = useApp();
+  const { lang, setLang, t, items, addTracking, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortMode, setSortMode] = useState("recommend"); // "recommend" | "latest"
@@ -30,22 +28,22 @@ function SearchResultsContent() {
   const [filters, setFilters] = useState({
     category: "전체",
     color: "전체",
-    region: "전체",
-    startDate: "2025-09-10",
-    endDate: "2025-09-15"
+    lostDate: ""
   });
 
   const filteredItems = useMemo(() => {
     let list = [...items];
 
     if (filters.category && filters.category !== "전체") {
-      list = list.filter((item) => item.category === filters.category);
+      list = list.filter(
+        (item) => (item.category || item.mainCategory) === filters.category
+      );
     }
     if (filters.color && filters.color !== "전체") {
       list = list.filter((item) => item.color === filters.color);
     }
-    if (filters.region && filters.region !== "전체") {
-      list = list.filter((item) => item.location.includes(filters.region));
+    if (filters.lostDate) {
+      list = list.filter((item) => item.date === filters.lostDate);
     }
 
     if (sortMode === "recommend") {
@@ -57,16 +55,20 @@ function SearchResultsContent() {
     return list;
   }, [items, filters, sortMode]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
+  const handleApplyFilters = (newFilters) => {
+    if (newFilters.nlQuery) {
+      setSearchQuery(newFilters.nlQuery);
       showToast(
         lang === "ko"
-          ? `'${searchQuery}' 조건으로 검색했습니다.`
-          : `Searched for '${searchQuery}'.`,
+          ? `'${newFilters.nlQuery}' 조건으로 검색했습니다.`
+          : `Searched for '${newFilters.nlQuery}'.`,
         "info"
       );
     }
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters
+    }));
   };
 
   const handleRegisterTrackingClick = () => {
@@ -78,13 +80,13 @@ function SearchResultsContent() {
 
   return (
     <div className="flex-1 flex flex-col bg-[#f8f9fa] animate-in fade-in duration-200">
-      {/* 상단 네비게이션 헤더 (와이어프레임 04) */}
+      {/* 상단 네비게이션 헤더 */}
       <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => router.back()}
-            className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-700 transition-all active:scale-95"
+            className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-700 transition-all active:scale-95 cursor-pointer"
             aria-label="뒤로가기"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
@@ -101,27 +103,7 @@ function SearchResultsContent() {
         />
       </header>
 
-      {/* 상단 검색 조건 보정 입력창 */}
-      <div className="p-4 bg-white border-b border-gray-100 shadow-2xs">
-        <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t.searchPlaceholder}
-            className="w-full h-12 pl-4 pr-11 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
-          />
-          <button
-            type="submit"
-            className="absolute right-2 p-2 rounded-xl bg-[#85132d] text-white hover:bg-[#701025] transition-all active:scale-90"
-            aria-label="재검색"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </form>
-      </div>
-
-      {/* 정렬 탭 & 필터 보정 버튼 (와이어프레임 04) */}
+      {/* 정렬 탭 & 필터 보정 버튼 */}
       <div className="px-4 py-3 bg-white flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-1.5">
           <button
@@ -151,7 +133,7 @@ function SearchResultsContent() {
         <button
           type="button"
           onClick={() => setIsFilterOpen(true)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200/90 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200/90 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500" />
           <span>{t.filterAdjust}</span>
@@ -161,67 +143,74 @@ function SearchResultsContent() {
       {/* 검색 결과 카운트 문구 */}
       <div className="px-5 pt-3.5 pb-1">
         <p className="text-xs sm:text-sm font-medium text-gray-500">
+          {searchQuery && (
+            <span className="text-[#85132d] font-bold mr-1">
+              '{searchQuery}'
+            </span>
+          )}
           {t.resultCountPrefix}{" "}
           <strong className="text-gray-900 font-bold">{filteredItems.length}</strong>
           {t.resultCountSuffix}
         </p>
       </div>
 
-      {/* 결과 카드 리스트 (와이어프레임 04) */}
+      {/* 결과 카드 리스트 */}
       <div className="p-4 space-y-3 pb-24">
         {filteredItems.map((item) => (
           <div
             key={item.id}
             onClick={() => router.push(`/items/${item.id}`)}
-            className="group relative bg-white rounded-2xl p-3.5 border border-gray-100 shadow-2xs hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer active:scale-[0.99] flex gap-3.5 items-center"
+            className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer active:scale-[0.99] flex gap-3.5 items-start"
           >
-            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative">
+            {/* 분실물 썸네일 이미지 */}
+            <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative mt-0.5">
               <img
-                src={item.images[0]}
+                src={item.images?.[0] || item.image}
                 alt={item.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
 
-            <div className="flex-1 min-w-0 pr-6">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
-                  {item.name}
-                </h3>
-                <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
-                  {item.matchRate}% {t.matchSuffix}
-                </span>
+            {/* 본문 정보 영역 */}
+            <div className="flex-1 min-w-0">
+              {/* 상단 라인: 분류 태그, 색상 chip, 일치율 배지 */}
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-700">
+                    {item.category || item.mainCategory || "기타"}
+                  </span>
+                  {item.color && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-700">
+                      {item.color}
+                    </span>
+                  )}
+                </div>
+                {item.matchRate && (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+                    {item.matchRate}% {t.matchSuffix}
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-1 text-xs text-gray-500 font-medium">
+              {/* 1. 분실물 이름: 긴 텍스트도 독립적으로 유지 (2줄 말줄임 지원) */}
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 leading-snug line-clamp-2 break-keep mb-2">
+                {item.name}
+              </h3>
+
+              {/* 보관 장소 및 습득일(보관일): 지금 느낌대로 아이콘과 함께 유지 */}
+              <div className="space-y-1 text-xs text-gray-500 font-medium pt-0.5 border-t border-gray-50">
                 <div className="flex items-center gap-1.5 truncate">
                   <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                   <span>{item.date}</span>
                 </div>
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="truncate">{item.location}</span>
+                  <span className="truncate">{item.storageFacility || item.location}</span>
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleLike(item.id);
-              }}
-              className="absolute right-3.5 top-3.5 p-1.5 rounded-full hover:bg-gray-100 transition-all active:scale-90"
-              aria-label="관심 등록"
-            >
-              <Heart
-                className={`w-4 h-4 transition-colors ${
-                  item.isLiked
-                    ? "fill-rose-500 text-rose-500"
-                    : "text-gray-300 hover:text-gray-500"
-                }`}
-              />
-            </button>
+            {/* 우측 상단 하트(관심 추가) 버튼 완전 제거됨 */}
           </div>
         ))}
 
@@ -240,7 +229,7 @@ function SearchResultsContent() {
         )}
       </div>
 
-      {/* 하단 고정: 추적 등록하기 버튼 (와이어프레임 04) */}
+      {/* 하단 고정: 추적 등록하기 버튼 */}
       <div className="sticky bottom-14 left-0 right-0 p-4 bg-gradient-to-t from-[#f8f9fa] via-[#f8f9fa]/95 to-transparent z-20">
         <button
           type="button"
@@ -252,12 +241,12 @@ function SearchResultsContent() {
         </button>
       </div>
 
-      {/* 필터 모달 (와이어프레임 06) */}
+      {/* 필터 모달 */}
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         currentFilters={filters}
-        onApplyFilters={(newFilters) => setFilters(newFilters)}
+        onApplyFilters={handleApplyFilters}
         lang={lang}
         showToast={showToast}
       />
@@ -267,7 +256,13 @@ function SearchResultsContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-400">검색 결과 로딩 중...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-sm text-gray-400">
+          검색 결과 로딩 중...
+        </div>
+      }
+    >
       <SearchResultsContent />
     </Suspense>
   );
