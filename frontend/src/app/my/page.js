@@ -38,11 +38,7 @@ export default function MyPage() {
           </h1>
         </div>
 
-        <LanguageSelector
-          currentLang={lang}
-          onChangeLang={setLang}
-          variant="badge"
-        />
+        <div className="w-8" />
       </header>
 
       <div className="p-4 space-y-4">
