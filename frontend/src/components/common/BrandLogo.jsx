@@ -3,13 +3,13 @@
 import React from "react";
 import { MapPin } from "lucide-react";
 
-export default function BrandLogo({ size = "md", subtitle = "", align = "center", lang = "ko" }) {
+export default function BrandLogo({ size = "md", subtitle = "", align = "center", lang = "ko", clickable = true }) {
   const isKo = lang === "ko";
   const titleText = isKo ? "어디갔지" : "Where Is It";
 
   if (size === "sm") {
     return (
-      <div className="flex items-center gap-2 cursor-pointer select-none">
+      <div className={`flex items-center gap-2 ${clickable ? "cursor-pointer" : "cursor-default"} select-none`}>
         <div className="w-7 h-7 rounded-full bg-[#85132d] flex items-center justify-center text-white shadow-sm">
           <MapPin className="w-4 h-4 fill-white" />
         </div>
