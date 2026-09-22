@@ -14,7 +14,8 @@ export default function HomePage() {
   const { lang, setLang, t, showToast } = useApp();
 
   const [query, setQuery] = useState("");
-  const examplePrompts = EXAMPLE_PROMPTS_BY_LANG[lang] || EXAMPLE_PROMPTS_BY_LANG.ko;
+  const examplePrompts =
+    EXAMPLE_PROMPTS_BY_LANG[lang] || EXAMPLE_PROMPTS_BY_LANG.ko;
 
   const handleSend = () => {
     console.log("[HomePage] handleSend triggered with query:", query);
@@ -24,7 +25,7 @@ export default function HomePage() {
         lang === "ko"
           ? "분실물에 대한 내용을 입력해 주세요."
           : "Please describe your lost item.",
-        "info"
+        "info",
       );
       return;
     }
@@ -46,7 +47,11 @@ export default function HomePage() {
     <div className="flex-1 flex flex-col justify-between animate-in fade-in duration-200">
       {/* 상단 네비게이션 헤더 (와이어프레임 03) */}
       <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="cursor-pointer" onClick={() => console.log("[HomePage] Logo clicked")}>
+        <Link
+          href="/"
+          className="cursor-pointer"
+          onClick={() => console.log("[HomePage] Logo clicked")}
+        >
           <BrandLogo size="sm" lang={lang} />
         </Link>
 

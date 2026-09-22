@@ -3,7 +3,7 @@
 export const INITIAL_LOST_ITEMS = [
   {
     id: "item-1",
-    name: "지갑 (검정색)",
+    name: "가죽 반지갑",
     matchRate: 98,
     date: "2025-09-14",
     location: "서울역 (서울특별시)",
@@ -23,7 +23,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-2",
-    name: "지갑 (남색)",
+    name: "슬림 사피아노 반지갑",
     matchRate: 92,
     date: "2025-09-13",
     location: "시청역 (서울특별시)",
@@ -42,7 +42,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-3",
-    name: "카드지갑 (검정색)",
+    name: "목걸이형 카드홀더",
     matchRate: 88,
     date: "2025-09-12",
     location: "사당역 (서울특별시)",
@@ -61,7 +61,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-4",
-    name: "지갑 (갈색)",
+    name: "빈티지 브라운 장지갑",
     matchRate: 76,
     date: "2025-09-11",
     location: "강남구청 (서울특별시)",
@@ -71,20 +71,17 @@ export const INITIAL_LOST_ITEMS = [
     description: "빈티지 브라운 장지갑입니다. 명함 및 영수증이 들어있습니다.",
     phone: "02-3484-8344",
     operatingHours: "평일 09:00 ~ 18:00",
-    images: [
-      "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80",
-    ],
+    images: [],
     isLiked: false,
   },
   {
     id: "item-5",
-    name: "아이폰 (흰색/실버)",
+    name: "아이폰 14 프로 실버",
     matchRate: 95,
     date: "2025-09-15",
     location: "강남역 2번 출구 부근",
     storageFacility: "역삼지구대",
-    category: "전자기기",
+    category: "휴대폰",
     color: "흰색",
     description:
       "투명 범퍼 케이스 착용된 스마트폰. 잠금화면에 고양이 배경화면 설정됨.",
@@ -98,7 +95,7 @@ export const INITIAL_LOST_ITEMS = [
   },
   {
     id: "item-6",
-    name: "백팩 (회색)",
+    name: "비즈니스 방수 백팩",
     matchRate: 90,
     date: "2025-09-13",
     location: "2호선 열차 내 (신도림역 방면)",
@@ -121,20 +118,22 @@ export const INITIAL_TRACKING_LIST = {
   active: [
     {
       id: "track-1",
-      name: "지갑 (검정색)",
+      title: "가죽 반지갑",
+      name: "가죽 반지갑",
+      prompt: "서울역 1호선 승강장에서 검은색 프라다 사피아노 가죽 반지갑을 두고 내렸습니다.",
       registeredDate: "2025-09-10",
       endDate: "2025-09-17",
       dDay: "D-3",
       candidatesCount: 2,
       category: "지갑",
       color: "검정색",
-      location: "서울역/용산역 인근",
-      thumbnail:
-        "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=300&q=80",
+      location: "서울역 1호선 승강장",
     },
     {
       id: "track-2",
-      name: "가방 (회색)",
+      title: "비즈니스 백팩",
+      name: "비즈니스 백팩",
+      prompt: "출근길 지하철 2호선 홍대입구역 방면 열차 선반 위에 둔 회색 노트북 백팩입니다.",
       registeredDate: "2025-09-11",
       endDate: "2025-09-18",
       dDay: "D-4",
@@ -142,49 +141,47 @@ export const INITIAL_TRACKING_LIST = {
       category: "가방",
       color: "회색",
       location: "지하철 2호선",
-      thumbnail:
-        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=300&q=80",
     },
     {
       id: "track-3",
-      name: "아이폰 (흰색)",
+      title: "아이폰 14 프로",
+      name: "아이폰 14 프로",
+      prompt: "강남역 11번 출구 부근 버스 정류장 벤치에서 분실한 흰색(실버) 아이폰입니다.",
       registeredDate: "2025-09-12",
       endDate: "2025-09-19",
       dDay: "D-5",
       candidatesCount: 1,
       category: "전자기기",
       color: "흰색",
-      location: "강남역 부근",
-      thumbnail:
-        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=300&q=80",
+      location: "강남역 11번 출구",
     },
   ],
   completed: [
     {
       id: "track-4",
-      name: "에어팟 프로 (흰색)",
+      title: "에어팟 프로 2세대",
+      name: "에어팟 프로 2세대",
+      prompt: "홍대입구역 인근 카페 테이블에 두고 온 흰색 에어팟 프로 2세대 본체입니다.",
       registeredDate: "2025-08-15",
       endDate: "2025-08-22",
-      statusText: "수령 완료",
+      statusText: "추적 종료",
       candidatesCount: 3,
       category: "전자기기",
       color: "흰색",
       location: "홍대입구역 카페",
-      thumbnail:
-        "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=300&q=80",
     },
     {
       id: "track-5",
-      name: "여권 케이스 (남색)",
+      title: "슬림 여권 케이스",
+      name: "슬림 여권 케이스",
+      prompt: "인천공항 제1여객터미널 출국장 탑승 대기 벤치에서 분실한 남색 가죽 여권 케이스입니다.",
       registeredDate: "2025-07-01",
       endDate: "2025-07-15",
       statusText: "기한 만료",
       candidatesCount: 0,
-      category: "지갑/서류",
+      category: "지갑",
       color: "남색",
-      location: "인천국제공항 T1",
-      thumbnail:
-        "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=300&q=80",
+      location: "인천공항 T1 출국장",
     },
   ],
 };
@@ -206,12 +203,25 @@ export const EXAMPLE_PROMPTS = EXAMPLE_PROMPTS_BY_LANG.ko;
 
 export const CATEGORIES = [
   "전체",
-  "지갑",
-  "전자기기",
   "가방",
   "귀금속",
+  "도서용품",
+  "서류",
+  "산업용품",
+  "쇼핑백",
+  "스포츠용품",
+  "악기",
+  "유가증권",
   "의류",
-  "기타",
+  "자동차",
+  "전자기기",
+  "지갑",
+  "증명서",
+  "컴퓨터",
+  "카드",
+  "현금",
+  "휴대폰",
+  "기타물품",
 ];
 export const COLORS = [
   "전체",
@@ -280,12 +290,13 @@ export const I18N = {
     trackRegisterCta: "내 분실물이 없나요? 추적 등록하기",
 
     // 상세
-    foundDate: "습득일자",
+    storageDate: "보관일자",
     foundLocation: "습득장소",
-    storageFacility: "보관기관",
+    storageFacility: "보관 장소",
     categoryLabel: "분류",
     colorLabel: "색상",
-    detailDesc: "상세설명",
+    facilityPhone: "기관 전화번호",
+    detailDesc: "분실물 상세 설명",
     contactFacility: "보관기관 문의하기",
 
     // 조건 보정 모달
@@ -293,11 +304,11 @@ export const I18N = {
     tabNaturalLanguage: "자연어 보정",
     tabDetailFilter: "상세 필터",
     nlPromptHeader: "더 정확한 검색을 위해 조건을 추가해보세요.",
-    nlPromptPlaceholder: "예) 삼성 지갑이었어요, 안에 카드가 여러 장 있었어요.",
+    nlPromptPlaceholder: "예) 강남역 부근에서 잃어버린 검정 지갑",
+    nlApplyBtn: "자연어로 조건 보정하기",
     manualFilterHeader: "직접 설정하기",
-    startDate: "습득일 (시작)",
-    endDate: "습득일 (종료)",
-    applyFilterBtn: "이 조건으로 다시 검색하기",
+    lostDate: "분실한 날짜",
+    applyFilterBtn: "필터 적용하기",
 
     // 추적 관리
     trackingTitle: "내 분실물 추적",
@@ -305,8 +316,23 @@ export const I18N = {
     tabCompleted: "종료됨",
     registeredAt: "등록일",
     expiresAt: "추적 종료",
-    additionalCandidates: "추가 후보",
-    editBtn: "수정",
+    additionalCandidates: "새 후보",
+    noCandidates: "후보 0건",
+    endTrackingBtn: "추적 종료",
+    statusEnded: "추적 종료",
+    statusExpired: "기한 만료",
+
+    // 종료 확인 모달
+    confirmEndTitle: "정말로 종료하시겠습니까?",
+    confirmEndDesc: "추적을 종료하면 더 이상 신규 알림을 받지 않으며,\n'종료됨' 탭으로 이동합니다.",
+    cancelBtn: "취소",
+    confirmEndBtn: "종료하기",
+
+    // 빈 화면
+    emptyActiveTitle: "추적 중인 분실물이 없습니다.",
+    emptyCompletedTitle: "종료된 분실물 추적 내역이 없습니다.",
+    emptyDesc: "새로운 분실물을 검색하고 분실물 알림을 등록해보세요.",
+    searchLostItemBtn: "분실물 검색하러 가기",
 
     // 알림 토스트
     toastTrackingSuccess:
@@ -359,12 +385,13 @@ export const I18N = {
     trackRegisterCta: "Can't find your item? Start Tracking",
 
     // 상세
-    foundDate: "Found Date",
+    storageDate: "Storage Date",
     foundLocation: "Found Location",
-    storageFacility: "Holding Facility",
+    storageFacility: "Holding Place",
     categoryLabel: "Category",
     colorLabel: "Color",
-    detailDesc: "Details",
+    facilityPhone: "Facility Phone",
+    detailDesc: "Item Description",
     contactFacility: "Contact Facility",
 
     // 조건 보정 모달
@@ -372,12 +399,11 @@ export const I18N = {
     tabNaturalLanguage: "Natural Language",
     tabDetailFilter: "Detailed Filters",
     nlPromptHeader: "Add more details to find your exact match.",
-    nlPromptPlaceholder:
-      "e.g. It was a black leather wallet with transit cards inside.",
+    nlPromptPlaceholder: "e.g. Black wallet lost near Gangnam Station",
+    nlApplyBtn: "Search with Natural Language",
     manualFilterHeader: "Manual Filter Settings",
-    startDate: "Found Date (From)",
-    endDate: "Found Date (To)",
-    applyFilterBtn: "Search with these filters",
+    lostDate: "Date Lost",
+    applyFilterBtn: "Apply Filters",
 
     // 추적 관리
     trackingTitle: "Lost Item Tracking",
@@ -386,7 +412,22 @@ export const I18N = {
     registeredAt: "Registered",
     expiresAt: "Expires",
     additionalCandidates: "New candidates",
-    editBtn: "Edit",
+    noCandidates: "0 candidates",
+    endTrackingBtn: "End Tracking",
+    statusEnded: "Ended",
+    statusExpired: "Expired",
+
+    // 종료 확인 모달
+    confirmEndTitle: "Are you sure you want to end tracking?",
+    confirmEndDesc: "Ending tracking means you will no longer receive new alerts, and this item will move to the 'Completed' tab.",
+    cancelBtn: "Cancel",
+    confirmEndBtn: "End Tracking",
+
+    // 빈 화면
+    emptyActiveTitle: "No active tracking items.",
+    emptyCompletedTitle: "No completed tracking history.",
+    emptyDesc: "Search for lost items and register for match alerts.",
+    searchLostItemBtn: "Search Lost Items",
 
     // 알림 토스트
     toastTrackingSuccess:
