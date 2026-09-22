@@ -96,6 +96,14 @@ npm run dev
 
 개발 서버의 기본 주소는 http://localhost:3000 입니다. `npm ci`는 `package-lock.json`과 정확히 일치하도록 의존성을 설치합니다.
 
+Lint와 테스트는 다음 명령으로 실행합니다. `lint`는 ESLint(`eslint-config-next`)를, `test`는 Vitest와 Testing Library를 사용합니다.
+
+```bash
+cd frontend
+npm run lint
+npm run test
+```
+
 ## 5. MySQL 로컬 실행
 
 ### 5.1 운영 원칙

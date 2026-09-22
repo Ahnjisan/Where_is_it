@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -23,5 +25,15 @@
     "react-dom": "19.1.0",
     "tailwind-merge": "^3.5.5",
     "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.25",
+    "jsdom": "^29.1.1",
+    "vitest": "^5.0.1"
   }
 }

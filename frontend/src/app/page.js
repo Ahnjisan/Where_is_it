@@ -110,7 +110,7 @@ export default function HomePage() {
                 onClick={() => handleChipClick(prompt)}
                 className="w-full text-left px-4 py-3.5 rounded-2xl bg-white hover:bg-[#fff1f3] border border-gray-200/80 hover:border-[#fecdd3] text-xs sm:text-sm font-medium text-gray-700 hover:text-[#85132d] shadow-2xs transition-all duration-200 active:scale-[0.99] flex items-center justify-between group cursor-pointer"
               >
-                <span className="truncate">"{prompt}"</span>
+                <span className="truncate">&ldquo;{prompt}&rdquo;</span>
                 <span className="text-gray-300 group-hover:text-[#85132d] text-xs transition-colors">
                   →
                 </span>
