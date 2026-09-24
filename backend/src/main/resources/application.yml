@@ -35,3 +35,6 @@ logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)
     org.hibernate.SQL: debug
+  pattern:
+    # 오류 응답에 담아 보낸 requestId로 그 요청의 로그를 찾을 수 있게, 레벨 뒤에 함께 출력한다.
+    level: "%5p [%X{requestId:-}]"

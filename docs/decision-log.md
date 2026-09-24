@@ -29,6 +29,7 @@
 | 추적 기간 | 등록 후 7일 |
 | 재검색 주기 | 하루 1회 |
 | 알림 방식 | 신규 유사 후보 발견 시 이메일 알림 |
+| 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고, API 응답의 date-time에는 `+09:00` 오프셋을 포함 |
 
 ## 미결정 항목
 
@@ -51,3 +52,4 @@
 | 2026-09-19 | Frontend 기준선 | Next.js 15.5.25, React 19.1.x, JavaScript, Node.js 24.20.0, npm 11.6.2 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Database 운영 | MySQL을 사용하고 추후 Docker Compose로 제공하며, 현재 Redis는 도입하지 않음 | Issue #6 | 안지산 |
 | 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | PR 승인 후 기재 |
+| 2026-09-22 | 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고 API 응답에 `+09:00` 오프셋을 포함. 서버(JVM)와 DB의 시간대를 Asia/Seoul로 고정 | Issue #27 | PR 승인 후 기재 |

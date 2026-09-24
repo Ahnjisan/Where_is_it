@@ -15,6 +15,7 @@ Frontend와 Backend를 하나의 저장소에서 관리하며 두 프로젝트 �
 | Database | MySQL 8.4 (LTS), Docker Compose로 로컬 실행 | 확정 |
 | 외부 데이터 API | 경찰청 습득물정보 조회 API | 확정 |
 | 형상 관리 | GitHub Issues와 Pull Requests를 사용하는 GitHub Flow | 확정 |
+| 시간 기준 | KST(Asia/Seoul). API 응답의 date-time에 `+09:00` 오프셋 포함 | 확정 |
 
 ## 2. 프로젝트 구조
 
@@ -132,6 +133,7 @@ npm run test
 - 팀원 PC에 MySQL을 직접 설치하지 않고, `backend/compose.yaml`로 모두 같은 MySQL 환경을 실행합니다.
 - Compose에는 MySQL만 둡니다. 애플리케이션은 컨테이너로 만들지 않고 `bootRun` 또는 IDE로 실행합니다.
 - 현재 Redis는 사용하지 않습니다.
+- 시각은 모두 KST(Asia/Seoul)로 저장합니다. MySQL은 `compose.yaml`의 `TZ`로, 서버는 애플리케이션이 시작할 때 기본 시간대를 Asia/Seoul로 고정합니다. 실행하는 PC나 CI 러너의 시간대가 무엇이든 저장·응답 시각은 KST입니다.
 
 ### 5.2 처음 한 번 준비
 
