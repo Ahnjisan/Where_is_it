@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.whereisit.backend.global.config.RequestBodyJsonConfig;
 import com.whereisit.backend.global.config.TimeConfig;
 import com.whereisit.backend.global.response.ApiResponse;
 
@@ -36,7 +37,7 @@ import jakarta.validation.constraints.Size;
  * 실제 컨트롤러가 아직 없어서, 테스트 전용 컨트롤러로 공통 응답·오류 형식을 확인한다.
  */
 @WebMvcTest
-@Import({ GlobalExceptionHandlerTest.TestController.class, TimeConfig.class })
+@Import({ GlobalExceptionHandlerTest.TestController.class, TimeConfig.class, RequestBodyJsonConfig.class })
 @DisplayName("공통 응답과 오류 처리")
 class GlobalExceptionHandlerTest {
 
@@ -93,6 +94,18 @@ class GlobalExceptionHandlerTest {
 				.content("{\"email\":"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+	}
+
+	@Test
+	@DisplayName("알 수 없는 JSON 필드는 400 VALIDATION_ERROR와 필드 경로를 준다")
+	void unknownJsonField() throws Exception {
+		mockMvc.perform(post("/test/validate")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"email\":\"a@example.com\",\"password\":\"password1\",\"typo\":1}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.error.fields[0].field").value("typo"))
+				.andExpect(jsonPath("$.error.fields[0].reason").value("UnknownField"));
 	}
 
 	@Test

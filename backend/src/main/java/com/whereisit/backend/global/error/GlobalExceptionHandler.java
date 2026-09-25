@@ -20,6 +20,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.whereisit.backend.global.error.ErrorResponse.FieldError;
 import com.whereisit.backend.global.filter.RequestIdFilter;
 
@@ -66,7 +67,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException e) {
 		List<FieldError> fields = e.getCause() instanceof JsonMappingException jsonError
-				? List.of(new FieldError(pathOf(jsonError), "InvalidFormat"))
+				? List.of(new FieldError(pathOf(jsonError), reasonOf(jsonError)))
 				: List.of();
 		return toResponse(CommonErrorCode.VALIDATION_ERROR, fields);
 	}
@@ -124,5 +125,9 @@ public class GlobalExceptionHandler {
 						: reference.getFieldName())
 				.collect(Collectors.joining("."));
 		return path.isBlank() ? "body" : path;
+	}
+
+	private String reasonOf(JsonMappingException e) {
+		return e instanceof UnrecognizedPropertyException ? "UnknownField" : "InvalidFormat";
 	}
 }
