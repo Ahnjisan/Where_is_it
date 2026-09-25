@@ -29,6 +29,12 @@
 | 추적 기간 | 등록 후 7일 |
 | 재검색 주기 | 하루 1회 |
 | 알림 방식 | 신규 유사 후보 발견 시 이메일 알림 |
+| Database 논리명 | 업무 용어와 ERD 논리명은 한글을 사용하며, 한글은 문서 설명과 Database COMMENT에도 사용 가능 |
+| MySQL 물리 식별자 | 테이블·컬럼·제약조건·인덱스 이름은 소문자 영문 `snake_case` 사용 |
+| 애플리케이션 식별자 | Java 클래스는 영문 `PascalCase`, Java 필드와 API JSON 필드는 영문 `camelCase`, Enum 값은 영문 `UPPER_SNAKE_CASE` 사용 |
+| 제약조건·인덱스 접두어 | PRIMARY KEY `pk_`, FOREIGN KEY `fk_`, UNIQUE `uk_`, INDEX `idx_`, CHECK `chk_` 사용 |
+| 식별자 안전성 | 이해하기 어려운 축약어와 MySQL 예약어 충돌을 피하고, 플랫폼별 대소문자 차이를 방지하기 위해 영문 물리명은 소문자로 통일 |
+| Refresh Token 키 정책 | `refresh_tokens.member_id`는 FK이며 단독 UNIQUE가 아님. `token_hash`는 UNIQUE이고 `(member_id, expires_at)`은 비고유 INDEX이며 회원별 복수 기기 세션 허용 |
 
 ## 미결정 항목
 
@@ -38,7 +44,7 @@
 | 이메일 발송 서비스 | 미결정 |
 | 인증 기능 | 미결정 |
 | 상세 API 계약 | 미결정 |
-| Database 구조 | 미결정 |
+| Database 전체 구조와 세부 구현 | 미결정 |
 | AI 입출력 JSON Schema | 미결정 |
 | 화면 상세 설계 | 미결정 |
 | 배포 환경 | 미결정 |
@@ -51,3 +57,4 @@
 | 2026-09-19 | Frontend 기준선 | Next.js 15.5.25, React 19.1.x, JavaScript, Node.js 24.20.0, npm 11.6.2 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Database 운영 | MySQL을 사용하고 추후 Docker Compose로 제공하며, 현재 Redis는 도입하지 않음 | Issue #6 | 안지산 |
 | 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | PR 승인 후 기재 |
+| 2026-09-24 | Database 식별자와 Refresh Token 키 정책 | 한글 논리명과 영문 물리명을 구분하고 MySQL 물리명 규칙 및 제약조건·인덱스 접두어를 확정. `refresh_tokens.member_id`의 단독 UNIQUE를 배제하고 회원별 복수 기기 세션을 허용 | Issue #31, #32 | 안지산 |
