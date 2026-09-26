@@ -12,6 +12,9 @@ import com.whereisit.backend.global.filter.RequestIdFilter;
  */
 public record ErrorResponse(boolean success, Body error) {
 
+	/** 401 응답의 WWW-Authenticate 값. 이 API의 인증 방식은 Bearer 토큰 하나다. */
+	public static final String BEARER_CHALLENGE = "Bearer";
+
 	public record Body(String code, String message, List<FieldError> fields, String requestId) {
 	}
 

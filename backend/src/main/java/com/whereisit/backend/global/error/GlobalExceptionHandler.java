@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.context.MessageSourceResolvable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.method.ParameterValidationResult;
@@ -107,7 +109,12 @@ public class GlobalExceptionHandler {
 
 	private ResponseEntity<ErrorResponse> toResponse(ErrorCode errorCode, List<FieldError> fields) {
 		ErrorResponse body = ErrorResponse.of(errorCode, fields);
-		return ResponseEntity.status(errorCode.getStatus()).body(body);
+		ResponseEntity.BodyBuilder response = ResponseEntity.status(errorCode.getStatus());
+		// 401에는 인증 방식을 알리는 헤더가 있어야 한다(RFC 7235 §3.1). 로그인 실패(INVALID_CREDENTIALS)가 여기로 온다.
+		if (errorCode.getStatus() == HttpStatus.UNAUTHORIZED) {
+			response.header(HttpHeaders.WWW_AUTHENTICATE, ErrorResponse.BEARER_CHALLENGE);
+		}
+		return response.body(body);
 	}
 
 	/** 검증 메시지는 로캘을 타므로, 마지막 코드(NotBlank, Size 등)를 reason으로 쓴다. */

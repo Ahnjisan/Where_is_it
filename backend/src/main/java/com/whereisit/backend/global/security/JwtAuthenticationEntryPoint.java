@@ -38,7 +38,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 				: AuthErrorCode.AUTH_REQUIRED;
 
 		// 401에는 인증 방식을 알려 주는 헤더를 붙인다(RFC 6750 §3, 06_오류코드 AUTH_REQUIRED).
-		response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+		response.setHeader(HttpHeaders.WWW_AUTHENTICATE, ErrorResponse.BEARER_CHALLENGE);
 		response.setStatus(errorCode.getStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding(StandardCharsets.UTF_8.name());

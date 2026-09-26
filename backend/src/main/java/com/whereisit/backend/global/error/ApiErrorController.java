@@ -33,8 +33,8 @@ public class ApiErrorController implements ErrorController {
 		logError(request, status, errorCode);
 
 		ResponseEntity.BodyBuilder response = ResponseEntity.status(errorCode.getStatus());
-		if (errorCode == AuthErrorCode.AUTH_REQUIRED) {
-			response.header(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+		if (errorCode.getStatus() == HttpStatus.UNAUTHORIZED) {
+			response.header(HttpHeaders.WWW_AUTHENTICATE, ErrorResponse.BEARER_CHALLENGE);
 		}
 		return response.body(ErrorResponse.of(errorCode, List.of()));
 	}
