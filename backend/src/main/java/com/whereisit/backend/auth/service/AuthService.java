@@ -2,6 +2,7 @@ package com.whereisit.backend.auth.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -84,7 +85,7 @@ public class AuthService {
 			throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
 		}
 
-		refreshTokenRepository.deleteExpiredByMemberId(member.getId(), LocalDateTime.now(clock));
+		deleteExpiredRefreshTokens(member.getId());
 
 		IssuedToken accessToken = jwtTokenProvider.issueAccessToken(member.getId());
 		IssuedToken refreshToken = jwtTokenProvider.issueRefreshToken(member.getId());
@@ -93,5 +94,16 @@ public class AuthService {
 
 		return LoginResponse.of(accessToken.value(), jwtTokenProvider.accessTokenTtlSeconds(),
 				refreshToken.value(), MemberResponse.from(member));
+	}
+
+	/**
+	 * 이 회원의 만료된 RT를 지운다. 만료 행의 ID를 먼저 읽고 PK로 지워서, 지우는 행에만 잠금이 걸리게 한다.
+	 * 범위 조건 DELETE는 갭 락 때문에 같은 회원의 동시 로그인에서 데드락이 났다(Issue #48).
+	 */
+	private void deleteExpiredRefreshTokens(Long memberId) {
+		List<Long> expiredIds = refreshTokenRepository.findExpiredIdsByMemberId(memberId, LocalDateTime.now(clock));
+		if (!expiredIds.isEmpty()) {
+			refreshTokenRepository.deleteAllByIdInBatch(expiredIds);
+		}
 	}
 }

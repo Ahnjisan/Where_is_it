@@ -129,6 +129,22 @@ class LoginApiTest extends ApiTestSupport {
 	}
 
 	@Test
+	@DisplayName("만료 시각과 정확히 같은 순간의 RT는 아직 유효해서 지우지 않고, 1초 뒤에 지운다(JWT 검증과 같은 기준)")
+	void expiryBoundaryMatchesJwtValidation() throws Exception {
+		JsonNode first = loginData(EMAIL);
+		Long memberId = first.get("member").get("memberId").asLong();
+		String firstHash = TokenHasher.sha256Hex(first.get("refreshToken").asText());
+
+		clock.advance(Duration.ofDays(14));
+		loginData(EMAIL);
+		assertThat(hashesOf(memberId)).contains(firstHash).hasSize(2);
+
+		clock.advance(Duration.ofSeconds(1));
+		loginData(EMAIL);
+		assertThat(hashesOf(memberId)).doesNotContain(firstHash).hasSize(2);
+	}
+
+	@Test
 	@DisplayName("TC-31 로그인할 때 이 회원의 만료된 RT만 지우고, 다른 회원의 RT는 그대로 둔다")
 	void loginDeletesOnlyOwnExpiredTokens() throws Exception {
 		Long memberId = loginData(EMAIL).get("member").get("memberId").asLong();
@@ -143,5 +159,13 @@ class LoginApiTest extends ApiTestSupport {
 				.extracting(RefreshToken::getTokenHash)
 				.containsExactly(TokenHasher.sha256Hex(newRefreshToken));
 		assertThat(refreshTokenRepository.countByMemberId(otherMemberId)).isEqualTo(1);
+	}
+
+	/** 로컬 DB에 다른 데이터가 있을 수 있으므로 이 회원의 RT 해시만 본다. */
+	private List<String> hashesOf(Long memberId) {
+		return refreshTokenRepository.findAll().stream()
+				.filter(token -> token.getMember().getId().equals(memberId))
+				.map(RefreshToken::getTokenHash)
+				.toList();
 	}
 }
