@@ -45,7 +45,7 @@
 | --- | --- |
 | AI API 제공자와 모델 | 미결정 |
 | 이메일 발송 서비스 | 미결정 |
-| 상세 API 계약 | 미결정 |
+| 외부 API 잔여 계약 | 일반·포털 상세 API 계약과 필드 매핑은 확인됨. 공통코드 실제 계약·코드표와 일반 정상 빈 결과·별도 오류 봉투 세부 구조는 미확정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
 | AI 입출력 JSON Schema | 미결정 |
 | 화면 상세 설계 | 미결정 |
@@ -63,3 +63,4 @@
 | 2026-09-22 | 지원 언어 | 지원 언어를 한국어(`ko`)·영어(`en`)로 확정. API 명세 v2 API-01 `languageCode`의 허용값 | API 명세 v2 API-01, Issue #46 | PR 승인 후 기재 |
 | 2026-09-24 | Database 식별자와 Refresh Token 키 정책 | 한글 논리명과 영문 물리명을 구분하고 MySQL 물리명 규칙 및 제약조건·인덱스 접두어를 확정. `refresh_tokens.member_id`의 단독 UNIQUE를 배제하고 회원별 복수 기기 세션을 허용 | Issue #31, #32 | 안지산 |
 | 2026-09-26 | 인증 방식 | Spring Security + JWT(HS256) 인증 확정. AT 30분·RT 14일, RT는 JWT로 기기별 발급하고 SHA-256 해시만 저장, 서명 키는 `JWT_SECRET` | Issue #28 | 반정욱(PR #45 머지) |
+| 2026-09-26 | 습득물 외부 API 실호출 검증 | 일반·포털 습득물 목록·상세 API 실제 호출 성공. 목록 `depPlace` → `storage_place`, 상세 `fdPlace` → `found_place`, `tel` → `storage_phone`, `uniq` → `description` 매핑을 확정. 실제 응답은 `application/xml`, 정상 XML Namespace 없음, 목록·상세 모두 `body/items/item`. NULL 정책은 기존대로 유지. 경찰민원24 개편은 2026-09-26 실제 호출 기준 일반·포털 목록·상세 연동 영향이 확인되지 않음. 공통코드 API는 승인대기로 별도 검증이 필요하며, 일반 정상 빈 결과와 별도 오류 봉투 세부 구조는 미확정 | Issue #41 | 안지산 |
