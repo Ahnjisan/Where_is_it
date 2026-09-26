@@ -98,9 +98,12 @@ cd backend
 | Database | MySQL 8.4 (Docker Compose) | SQLite 인메모리 |
 | 사전 준비 | 5장의 Docker Compose 실행 | 없음 |
 | 커넥션 풀 | 기본 설정 | 1개로 고정 |
+| UNIQUE·FK 제약 | 엔티티 정의대로 생성 | 생성되지 않음(Hibernate SQLite 방언의 한계) |
 | 용도 | 실제 배포 대상과 동일한 DB로 검증 | Docker 없이 빠른 로컬 확인 |
 
 `testSqlite`는 커넥션이 1개로 고정되어 있어 `@Transactional(propagation = REQUIRES_NEW)`처럼 같은 스레드에서 커넥션 2개를 동시에 요구하는 코드는 실패합니다. 이런 코드가 포함된 테스트는 `test`(MySQL)로만 확인하고, 최종 검증 기준은 항상 `test`입니다.
+
+`testSqlite`는 UNIQUE와 FK 제약도 만들지 않아서 중복·참조 위반이 그대로 저장됩니다. 제약 위반을 확인하는 테스트는 `@DisabledIfSystemProperty(named = "spring.profiles.active", matches = "sqlite")`를 붙여 `testSqlite`에서 제외합니다(예: `SignupRaceTest`).
 
 ## 4. Frontend 설치, 빌드 및 실행
 
