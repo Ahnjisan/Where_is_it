@@ -31,6 +31,19 @@ spring:
         # SQL 로그를 줄바꿈해 읽기 좋게 출력
         format_sql: true
 
+  # JWT로만 인증하므로, Spring Security가 기본 계정(무작위 비밀번호)을 만들어 로그에 찍지 않게 한다.
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+app:
+  jwt:
+    # HS256 서명 키. .env 또는 OS 환경변수 JWT_SECRET으로 주입한다(만드는 법: backend/.env.example).
+    # 기본값이 없으므로 설정하지 않으면 애플리케이션이 시작되지 않는다.
+    secret: ${JWT_SECRET}
+    # AT 30분, RT 14일(API 명세 v2 02_공통규칙 R10)
+    access-token-ttl: 30m
+    refresh-token-ttl: 14d
+
 logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)

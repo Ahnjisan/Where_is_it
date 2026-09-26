@@ -30,6 +30,15 @@ dependencies {
 	// 이메일 발송(JavaMailSender, SMTP) - 신규 유사 후보 알림
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+	// 인증·인가(SecurityFilterChain, BCrypt PasswordEncoder)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// JWT 발급·검증. Spring Boot BOM이 관리하지 않아서 버전을 직접 적는다.
+	// 코드는 api만 참조하고, 구현체(impl)와 JSON 처리(jackson)는 실행할 때만 필요해서 runtimeOnly
+	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
 	// MySQL JDBC 드라이버 - 실행할 때만 필요해서 runtimeOnly
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
@@ -39,6 +48,9 @@ dependencies {
 
 	// 테스트 도구 모음(JUnit 5, Mockito, AssertJ, Spring Test)
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// Security 테스트 도구(MockMvc에 보안 필터 적용, 인증 사용자 주입)
+	testImplementation 'org.springframework.security:spring-security-test'
 
 	// Gradle에서 JUnit 5 테스트를 실행하기 위한 런처
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

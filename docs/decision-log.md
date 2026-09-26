@@ -36,6 +36,7 @@
 | 제약조건·인덱스 접두어 | PRIMARY KEY `pk_`, FOREIGN KEY `fk_`, UNIQUE `uk_`, INDEX `idx_`, CHECK `chk_` 사용 |
 | 식별자 안전성 | 이해하기 어려운 축약어와 MySQL 예약어 충돌을 피하고, 플랫폼별 대소문자 차이를 방지하기 위해 영문 물리명은 소문자로 통일 |
 | Refresh Token 키 정책 | `refresh_tokens.member_id`는 FK이며 단독 UNIQUE가 아님. `token_hash`는 UNIQUE이고 `(member_id, expires_at)`은 비고유 INDEX이며 회원별 복수 기기 세션 허용 |
+| 인증 방식 | 이메일·비밀번호 회원가입과 로그인. Spring Security와 JWT(HS256)를 사용하고 AT는 `Authorization: Bearer`로 전달. AT 30분, RT 14일. RT도 JWT이며 로그인마다 기기별로 발급하고 DB에는 SHA-256 해시만 저장. 비밀번호는 BCrypt 해시로 저장. 서명 키는 환경변수 `JWT_SECRET` |
 
 ## 미결정 항목
 
@@ -43,7 +44,6 @@
 | --- | --- |
 | AI API 제공자와 모델 | 미결정 |
 | 이메일 발송 서비스 | 미결정 |
-| 인증 기능 | 미결정 |
 | 상세 API 계약 | 미결정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
 | AI 입출력 JSON Schema | 미결정 |
@@ -60,3 +60,4 @@
 | 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | PR 승인 후 기재 |
 | 2026-09-22 | 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고 API 응답에 `+09:00` 오프셋을 포함. 서버(JVM)와 DB의 시간대를 Asia/Seoul로 고정 | Issue #27 | PR 승인 후 기재 |
 | 2026-09-24 | Database 식별자와 Refresh Token 키 정책 | 한글 논리명과 영문 물리명을 구분하고 MySQL 물리명 규칙 및 제약조건·인덱스 접두어를 확정. `refresh_tokens.member_id`의 단독 UNIQUE를 배제하고 회원별 복수 기기 세션을 허용 | Issue #31, #32 | 안지산 |
+| 2026-09-26 | 인증 방식 | Spring Security + JWT(HS256) 인증 확정. AT 30분·RT 14일, RT는 JWT로 기기별 발급하고 SHA-256 해시만 저장, 서명 키는 `JWT_SECRET` | Issue #28 | PR 승인 후 기재 |

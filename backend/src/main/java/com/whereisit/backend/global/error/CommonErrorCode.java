@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 public enum CommonErrorCode implements ErrorCode {
 
 	VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Request validation failed."),
+	UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "Language is not supported."),
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Requested resource was not found."),
 	METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method is not allowed for this endpoint."),
 	UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content type is not supported."),
