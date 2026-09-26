@@ -138,7 +138,7 @@ npm run test
 ### 5.2 처음 한 번 준비
 
 1. Docker Desktop(Windows·macOS) 또는 Docker Engine과 Compose(Linux)를 설치하고 실행합니다.
-2. `backend/.env.example`을 `backend/.env`로 복사하고 `DB_USERNAME`·`DB_PASSWORD` 값을 채웁니다. 작성 규칙은 6장을 따릅니다.
+2. `backend/.env.example`을 `backend/.env`로 복사하고 `DB_USERNAME`·`DB_PASSWORD`·`JWT_SECRET` 값을 채웁니다. 작성 규칙은 6장을 따릅니다.
 
 Windows PowerShell:
 
@@ -203,6 +203,8 @@ docker compose exec mysql mysql -u YOUR_DB_USERNAME -p where_is_it
 - `.env.example`은 추적할 수 있지만 실제 `.env`와 `.env.*` 파일은 Git에서 제외합니다.
 - `backend/.env`는 Spring과 Docker Compose가 함께 읽습니다. 두 도구가 값을 다르게 읽지 않도록 따옴표·`export`·줄 끝 주석을 쓰지 않고, 값에 `$`, `\`, `#`, 공백을 넣지 않습니다. 예를 들어 Compose는 `ab$cd`를 `ab`로 읽지만 Spring은 그대로 읽어서 두 쪽의 비밀번호가 달라집니다.
 - `DB_USERNAME`에는 `root`를 쓸 수 없습니다. MySQL 컨테이너가 이 이름으로 일반 계정을 새로 만들기 때문입니다.
+- `JWT_SECRET`은 로그인 토큰(JWT)의 서명 키입니다. 32바이트 이상의 무작위 값을 Base64로 넣습니다. 만드는 명령은 `backend/.env.example`에 있으며, 각자 로컬에서 만들고 팀원과 공유하지 않습니다. 기본값이 없어서 비어 있으면 `bootRun`이 `JWT_SECRET is not set`으로 실패합니다. 키를 바꾸면 이미 발급된 토큰은 모두 무효가 됩니다.
+- 테스트(`test`·`testSqlite`)는 `backend/src/test/resources/config/application.yml`의 테스트 전용 키를 쓰므로 `JWT_SECRET`이 없어도 실행됩니다. 이 키는 공개된 값이므로 실행 환경에 쓰지 않습니다.
 - `docker compose config`는 `.env`의 비밀번호를 그대로 출력합니다. 설정을 검증할 때는 `docker compose config --quiet`를 사용합니다.
 - MySQL 첫 실행 로그에는 무작위 root 비밀번호가 출력됩니다. 로그를 PR이나 Discord에 붙일 때는 이 줄을 빼고 붙입니다.
 
