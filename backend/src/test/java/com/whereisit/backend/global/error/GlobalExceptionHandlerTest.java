@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -34,9 +35,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * 실제 컨트롤러가 아직 없어서, 테스트 전용 컨트롤러로 공통 응답·오류 형식을 확인한다.
+ * 테스트 전용 컨트롤러로 공통 응답·오류 형식만 확인한다.
+ * 실제 컨트롤러는 불러오지 않고, 인증은 이 테스트의 관심사가 아니라서 Security 자동 설정을 뺀다.
+ * 인증 오류 형식은 auth 쪽 테스트에서 확인한다.
  */
-@WebMvcTest
+@WebMvcTest(controllers = GlobalExceptionHandlerTest.TestController.class,
+		excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @Import({ GlobalExceptionHandlerTest.TestController.class, TimeConfig.class, RequestBodyJsonConfig.class })
 @DisplayName("공통 응답과 오류 처리")
 class GlobalExceptionHandlerTest {
