@@ -64,7 +64,7 @@ cd backend
 ./gradlew clean assemble
 ```
 
-Backend 실행(Docker 필요). 처음 한 번은 `backend/.env.example`을 `backend/.env`로 복사하고 `DB_USERNAME`·`DB_PASSWORD` 값을 채웁니다.
+Backend 실행(Docker 필요). 처음 한 번은 `backend/.env.example`을 `backend/.env`로 복사하고 `DB_USERNAME`·`DB_PASSWORD`·`JWT_SECRET` 값을 채웁니다. `JWT_SECRET`을 만드는 명령은 `.env.example`에 있으며, 비어 있으면 `bootRun`이 시작되지 않습니다.
 
 ```bash
 cd backend
