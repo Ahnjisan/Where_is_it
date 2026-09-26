@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
@@ -15,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whereisit.backend.auth.error.AuthErrorCode;
 import com.whereisit.backend.global.error.ErrorCode;
 import com.whereisit.backend.global.error.ErrorResponse;
-import com.whereisit.backend.global.filter.RequestIdFilter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,7 +42,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 		response.setStatus(errorCode.getStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-		objectMapper.writeValue(response.getWriter(),
-				ErrorResponse.of(errorCode, List.of(), MDC.get(RequestIdFilter.REQUEST_ID_KEY)));
+		objectMapper.writeValue(response.getWriter(), ErrorResponse.of(errorCode, List.of()));
 	}
 }

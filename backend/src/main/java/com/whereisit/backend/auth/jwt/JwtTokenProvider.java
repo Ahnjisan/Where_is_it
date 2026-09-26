@@ -69,7 +69,8 @@ public class JwtTokenProvider {
 	 */
 	public Long getMemberIdFromAccessToken(String token) {
 		Claims claims = parse(token);
-		if (!TokenType.ACCESS.getClaimValue().equals(claims.get(TokenType.CLAIM_NAME, String.class))) {
+		// 타입을 지정해 꺼내면(get(name, String.class)) 값이 문자열이 아닐 때 예외가 나서 500이 된다. 값으로만 비교한다.
+		if (!TokenType.ACCESS.getClaimValue().equals(claims.get(TokenType.CLAIM_NAME))) {
 			throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
 		}
 		return parseMemberId(claims.getSubject());

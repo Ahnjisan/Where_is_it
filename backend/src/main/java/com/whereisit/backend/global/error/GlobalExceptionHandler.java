@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.slf4j.MDC;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,7 +21,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.whereisit.backend.global.error.ErrorResponse.FieldError;
-import com.whereisit.backend.global.filter.RequestIdFilter;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,7 +106,7 @@ public class GlobalExceptionHandler {
 	}
 
 	private ResponseEntity<ErrorResponse> toResponse(ErrorCode errorCode, List<FieldError> fields) {
-		ErrorResponse body = ErrorResponse.of(errorCode, fields, MDC.get(RequestIdFilter.REQUEST_ID_KEY));
+		ErrorResponse body = ErrorResponse.of(errorCode, fields);
 		return ResponseEntity.status(errorCode.getStatus()).body(body);
 	}
 
