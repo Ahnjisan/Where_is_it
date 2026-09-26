@@ -20,10 +20,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.whereisit.backend.support.TestClockConfig;
+import com.whereisit.backend.auth.jwt.JwtProperties;
 import com.whereisit.backend.support.ApiTestSupport;
+import com.whereisit.backend.support.TestClockConfig;
 
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.persistence.EntityManager;
 
@@ -41,6 +43,9 @@ class AuthenticationTest extends ApiTestSupport {
 
 	@Autowired
 	private EntityManager entityManager;
+
+	@Autowired
+	private JwtProperties jwtProperties;
 
 	private JsonNode loginData;
 
@@ -120,6 +125,24 @@ class AuthenticationTest extends ApiTestSupport {
 				.compact();
 
 		getMeWith("Bearer " + forged)
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error.code").value("INVALID_TOKEN"));
+	}
+
+	@Test
+	@DisplayName("서명은 맞지만 token_type이 문자열이 아닌 토큰은 500이 아니라 401 INVALID_TOKEN")
+	void nonStringTokenType() throws Exception {
+		SecretKey serverKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
+		String token = Jwts.builder()
+				.issuer("where-is-it")
+				.subject(loginData.get("member").get("memberId").asText())
+				.claim("token_type", 1)
+				.issuedAt(Date.from(TestClockConfig.START))
+				.expiration(Date.from(TestClockConfig.START.plus(Duration.ofMinutes(30))))
+				.signWith(serverKey, Jwts.SIG.HS256)
+				.compact();
+
+		getMeWith("Bearer " + token)
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.error.code").value("INVALID_TOKEN"));
 	}

@@ -57,6 +57,16 @@ class SignupApiTest extends ApiTestSupport {
 	}
 
 	@Test
+	@DisplayName("복사해 붙인 주소의 NBSP·전각 공백도 지우고 저장한다")
+	void signupWithUnicodeSpaces() throws Exception {
+		signup(" User@Example.test　", PASSWORD, "en")
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.email").value("user@example.test"));
+
+		assertThat(memberRepository.existsByEmail("user@example.test")).isTrue();
+	}
+
+	@Test
 	@DisplayName("TC-02 대소문자·앞뒤 공백만 다른 이메일로 다시 가입하면 409 EMAIL_ALREADY_EXISTS")
 	void duplicateEmail() throws Exception {
 		signup("user@example.test", PASSWORD, "en").andExpect(status().isCreated());

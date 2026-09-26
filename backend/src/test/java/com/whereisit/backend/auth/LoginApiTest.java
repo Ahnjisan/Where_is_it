@@ -60,6 +60,14 @@ class LoginApiTest extends ApiTestSupport {
 				.andExpect(jsonPath("$.data.member.email").value(EMAIL));
 	}
 
+	@Test
+	@DisplayName("이메일 앞뒤에 NBSP·전각 공백이 붙어 있어도 로그인된다")
+	void loginWithUnicodeSpaces() throws Exception {
+		login("　User@Example.test ", PASSWORD)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.member.email").value(EMAIL));
+	}
+
 	@ParameterizedTest(name = "[{index}] {2}")
 	@CsvSource({
 			"user@example.test, WrongPass1!, 틀린 비밀번호",
@@ -68,10 +76,11 @@ class LoginApiTest extends ApiTestSupport {
 			"user@example.test, 비밀번호입니다, 한글 비밀번호",
 			"not-an-email, Password1!, 이메일 형식이 아님"
 	})
-	@DisplayName("TC-03 틀린 비밀번호·없는 이메일·규칙 밖 비밀번호는 모두 같은 401 INVALID_CREDENTIALS")
+	@DisplayName("TC-03 틀린 비밀번호·없는 이메일·규칙 밖 비밀번호는 모두 같은 401 INVALID_CREDENTIALS와 WWW-Authenticate")
 	void invalidCredentials(String email, String password, String description) throws Exception {
 		login(email, password)
 				.andExpect(status().isUnauthorized())
+				.andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
 				.andExpect(jsonPath("$.error.code").value("INVALID_CREDENTIALS"))
 				.andExpect(jsonPath("$.error.message").value("Email or password is incorrect."));
 	}
@@ -81,6 +90,7 @@ class LoginApiTest extends ApiTestSupport {
 	void emptyPassword() throws Exception {
 		login(EMAIL, "")
 				.andExpect(status().isBadRequest())
+				.andExpect(header().doesNotExist(HttpHeaders.WWW_AUTHENTICATE))
 				.andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
 				.andExpect(jsonPath("$.error.fields[0].field").value("password"));
 	}
