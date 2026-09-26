@@ -15,7 +15,9 @@ public enum AuthErrorCode implements ErrorCode {
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Email or password is incorrect."),
 	AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "Authentication is required."),
 	INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Access token is invalid."),
-	TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Access token has expired.");
+	TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Access token has expired."),
+	/** RT가 없음·만료·무효(회전으로 이미 쓴 RT 포함)·형식 오류. 원인은 구분하지 않는다. */
+	INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "Refresh token is invalid.");
 
 	private final HttpStatus status;
 	private final String message;

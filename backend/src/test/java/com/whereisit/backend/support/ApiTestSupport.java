@@ -58,6 +58,14 @@ public abstract class ApiTestSupport {
 		return postJson("/api/auth/login", Map.of("email", email, "password", password));
 	}
 
+	protected ResultActions refresh(String refreshToken) throws Exception {
+		return postJson("/api/auth/refresh", Map.of("refreshToken", refreshToken));
+	}
+
+	protected ResultActions logout(String refreshToken) throws Exception {
+		return postJson("/api/auth/logout", Map.of("refreshToken", refreshToken));
+	}
+
 	/** 가입 후 로그인해서 응답의 data(LoginData)를 돌려준다. */
 	protected JsonNode signupAndLogin(String email) throws Exception {
 		signup(email, PASSWORD, "en").andExpect(status().isCreated());
