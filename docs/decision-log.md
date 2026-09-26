@@ -29,6 +29,7 @@
 | 추적 기간 | 등록 후 7일 |
 | 재검색 주기 | 하루 1회 |
 | 알림 방식 | 신규 유사 후보 발견 시 이메일 알림 |
+| 지원 언어 | 한국어(`ko`)·영어(`en`). API의 `languageCode` 값과 회원 사용 언어로 사용 |
 | 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고, API 응답의 date-time에는 `+09:00` 오프셋을 포함 |
 | Database 논리명 | 업무 용어와 ERD 논리명은 한글을 사용하며, 한글은 문서 설명과 Database COMMENT에도 사용 가능 |
 | MySQL 물리 식별자 | 테이블·컬럼·제약조건·인덱스 이름은 소문자 영문 `snake_case` 사용 |
@@ -57,7 +58,8 @@
 | 2026-09-19 | 개발 환경 기준선 | Java 17, Spring Boot 3.5.16, Gradle Wrapper 8.14.5와 Java 기본 패키지 `com.whereisit` 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Frontend 기준선 | Next.js 15.5.25, React 19.1.x, JavaScript, Node.js 24.20.0, npm 11.6.2 사용 | Issue #6 | 안지산 |
 | 2026-09-19 | Database 운영 | MySQL을 사용하고 추후 Docker Compose로 제공하며, 현재 Redis는 도입하지 않음 | Issue #6 | 안지산 |
-| 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | PR 승인 후 기재 |
-| 2026-09-22 | 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고 API 응답에 `+09:00` 오프셋을 포함. 서버(JVM)와 DB의 시간대를 Asia/Seoul로 고정 | Issue #27 | PR 승인 후 기재 |
+| 2026-09-21 | 로컬 Database 실행 | MySQL 8.4를 `backend/compose.yaml`로 실행하고, Compose에는 MySQL만 둠(애플리케이션 컨테이너·Redis 제외) | Issue #8 | 반정욱(PR #9 머지) |
+| 2026-09-22 | 시간 기준 | 모든 날짜·시각을 KST(Asia/Seoul)로 저장·처리하고 API 응답에 `+09:00` 오프셋을 포함. 서버(JVM)와 DB의 시간대를 Asia/Seoul로 고정 | Issue #27 | 안지산(PR #42 승인) |
+| 2026-09-22 | 지원 언어 | 지원 언어를 한국어(`ko`)·영어(`en`)로 확정. API 명세 v2 API-01 `languageCode`의 허용값 | API 명세 v2 API-01, Issue #46 | PR 승인 후 기재 |
 | 2026-09-24 | Database 식별자와 Refresh Token 키 정책 | 한글 논리명과 영문 물리명을 구분하고 MySQL 물리명 규칙 및 제약조건·인덱스 접두어를 확정. `refresh_tokens.member_id`의 단독 UNIQUE를 배제하고 회원별 복수 기기 세션을 허용 | Issue #31, #32 | 안지산 |
-| 2026-09-26 | 인증 방식 | Spring Security + JWT(HS256) 인증 확정. AT 30분·RT 14일, RT는 JWT로 기기별 발급하고 SHA-256 해시만 저장, 서명 키는 `JWT_SECRET` | Issue #28 | PR 승인 후 기재 |
+| 2026-09-26 | 인증 방식 | Spring Security + JWT(HS256) 인증 확정. AT 30분·RT 14일, RT는 JWT로 기기별 발급하고 SHA-256 해시만 저장, 서명 키는 `JWT_SECRET` | Issue #28 | 반정욱(PR #45 머지) |
