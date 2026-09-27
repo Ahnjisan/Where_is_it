@@ -29,8 +29,8 @@ import com.whereisit.backend.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 분실물 검색·추적 CRUD(API-05~09). 검색 실행(API-11)과 7일 추적 활성화(API-14)는
- * 습득물·후보 테이블이 필요해 Issue #36에서 이어서 구현한다.
+ * 분실물 검색·추적 CRUD(API-05~09). findOwned·ensureNotExpired·applyConditions는
+ * 검색 실행·추적 활성화(Issue #36의 SearchExecutionService)에서도 그대로 재사용한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -76,9 +76,7 @@ public class LostItemService {
 	@Transactional
 	public LostItemResponse update(Long memberId, Long lostItemId, UpdateLostItemRequest request) {
 		LostItem lostItem = findOwned(memberId, lostItemId);
-		if (isEffectivelyExpired(lostItem)) {
-			throw new BusinessException(LostItemErrorCode.TRACKING_EXPIRED);
-		}
+		ensureNotExpired(lostItem);
 
 		if (request.description() != null) {
 			if (request.description().isBlank()) {
@@ -112,23 +110,29 @@ public class LostItemService {
 		}
 	}
 
-	LostItem findOwned(Long memberId, Long lostItemId) {
+	public LostItem findOwned(Long memberId, Long lostItemId) {
 		return lostItemRepository.findByIdAndMemberIdAndDeletedAtIsNull(lostItemId, memberId)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 	}
 
-	private boolean isEffectivelyExpired(LostItem lostItem) {
+	public boolean isEffectivelyExpired(LostItem lostItem) {
 		return lostItem.getStatus() == LostItemStatus.EXPIRED
 				|| (lostItem.getStatus() == LostItemStatus.TRACKING
 						&& lostItem.getExpiresAt() != null
 						&& !lostItem.getExpiresAt().isAfter(LocalDateTime.now(clock)));
 	}
 
+	public void ensureNotExpired(LostItem lostItem) {
+		if (isEffectivelyExpired(lostItem)) {
+			throw new BusinessException(LostItemErrorCode.TRACKING_EXPIRED);
+		}
+	}
+
 	/**
 	 * conditions를 보냈으면 그 8개 필드를 통째로 반영한다. 필드 하나하나의 "null 전송(해제)"과
 	 * "필드 자체를 안 보냄(유지)"을 구분하는 것은 이번 범위에서 단순화했다(PR 설명 참고).
 	 */
-	private void applyConditions(LostItem lostItem, SearchConditionsPatch patch) {
+	public void applyConditions(LostItem lostItem, SearchConditionsPatch patch) {
 		if (patch.lostDateFrom() != null && patch.lostDateTo() != null && patch.lostDateFrom().isAfter(patch.lostDateTo())) {
 			throw new BusinessException(LostItemErrorCode.INVALID_SEARCH_CONDITION);
 		}
