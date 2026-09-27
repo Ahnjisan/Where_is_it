@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,12 @@ import com.whereisit.backend.support.ApiTestSupport;
 
 @DisplayName("API-11 검색 실행·API-12 후보 조회")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class SearchExecutionApiTest extends ApiTestSupport {
 

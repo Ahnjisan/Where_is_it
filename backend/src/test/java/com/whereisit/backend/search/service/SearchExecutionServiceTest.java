@@ -20,6 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Limit;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -27,7 +29,6 @@ import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
-import com.whereisit.backend.founditem.repository.FoundItemRepository;
 import com.whereisit.backend.global.error.BusinessException;
 import com.whereisit.backend.lostitem.dto.CreateLostItemRequest;
 import com.whereisit.backend.lostitem.dto.SearchConditionsPatch;
@@ -51,6 +52,12 @@ import com.whereisit.backend.support.TestClockConfig;
 
 @SpringBootTest
 @Import(TestClockConfig.class)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class SearchExecutionServiceTest {
 
 	@Autowired SearchExecutionService searchExecutionService;
@@ -58,7 +65,6 @@ class SearchExecutionServiceTest {
 	@Autowired MemberRepository memberRepository;
 	@Autowired LostItemRepository lostItemRepository;
 	@Autowired ChatMessageRepository chatMessageRepository;
-	@Autowired FoundItemRepository foundItemRepository;
 	@Autowired LostItemCandidateRepository candidateRepository;
 	@Autowired TransactionTemplate transactionTemplate;
 
@@ -68,13 +74,6 @@ class SearchExecutionServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		transactionTemplate.executeWithoutResult(status -> {
-			candidateRepository.deleteAll();
-			foundItemRepository.deleteAll();
-			chatMessageRepository.deleteAll();
-			lostItemRepository.deleteAll();
-			memberRepository.deleteAll();
-		});
 		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenReturn(List.of());
