@@ -7,6 +7,8 @@
 - [API 명세서 v2](whereisit-api-spec-v2.xlsx)
 - [테이블 명세서 v2](whereisit-table-spec-v2.xlsx)
 
+두 canonical 확정본의 내부 버전은 v2.1이며 기준일은 2026-09-26입니다.
+
 원본 및 historical source는 다음 경로에 보관합니다.
 
 - [API v0.1 DRAFT 원본 Snapshot](source/whereisit-api-spec-v0.1-draft.xlsx)
@@ -32,8 +34,8 @@ API 원본의 내부 버전은 `API v0.1 DRAFT`입니다. API 명세서 v2는 �
 | 문서 | SHA-256 |
 | --- | --- |
 | API v0.1 DRAFT 원본 | `6c1ce371e4f3f27945a10248976c0b80ff4a47b6378c8c536e42c23e963d7c00` |
-| API v2 확정본 | `c7248f34180b2d924d88722ea23f51cfec44e2a6765d0e12111efe515741e1fb` |
-| 테이블 명세서 v2 | `01da1a9976a71cc247baf3946f0e6fcb317a7e771b5bcbabfa5ec3d99f1ab982` |
+| API v2 확정본 | `1ae387ca8ca334d173f15edbbc1b6f2229700c8679a35d83832ec087a8252940` |
+| 테이블 명세서 v2 | `0caf73f18cd11feefcbd93de77da6ed0f6434ffc87828a71ed41062438b442d8` |
 | 한글 SQL historical source | `29f917b4c3084a697204619c8eb1ed4b9cbfa3992172fc3df49290b8debf62f9` |
 
 ## 참조 규칙
