@@ -1,5 +1,6 @@
 package com.whereisit.backend.support;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -48,6 +50,18 @@ public abstract class ApiTestSupport {
 		return mockMvc.perform(post(url)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(body)));
+	}
+
+	/** Authorization: Bearer 헤더를 붙인 POST. lost-items 등 보호 API 테스트가 쓴다. */
+	protected ResultActions authorizedPostJson(String url, String accessToken, Map<String, ?> body) throws Exception {
+		return mockMvc.perform(post(url)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(body)));
+	}
+
+	protected ResultActions authorizedGet(String url, String accessToken) throws Exception {
+		return mockMvc.perform(get(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken));
 	}
 
 	protected ResultActions signup(String email, String password, String languageCode) throws Exception {
