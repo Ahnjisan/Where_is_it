@@ -136,6 +136,19 @@ public class LostItem extends BaseTimeEntity {
 		this.searchStartDate = searchStartDate;
 	}
 
+	/** AI 조건 구조화가 변경할 수 있는 날짜·장소 필드만 갱신한다. */
+	public void updateAiSearchConditions(LocalDate lostDateFrom, LocalDate lostDateTo, String lostPlaceText) {
+		if (lostDateFrom != null && lostDateTo != null && lostDateFrom.isAfter(lostDateTo)) {
+			throw new IllegalArgumentException("Lost date range is reversed.");
+		}
+		if (lostPlaceText != null && lostPlaceText.length() > 255) {
+			throw new IllegalArgumentException("Lost place is too long.");
+		}
+		this.lostDateFrom = lostDateFrom;
+		this.lostDateTo = lostDateTo;
+		this.lostPlaceText = lostPlaceText;
+	}
+
 	public void updateNotificationEmail(String notificationEmail) {
 		this.notificationEmail = notificationEmail;
 	}

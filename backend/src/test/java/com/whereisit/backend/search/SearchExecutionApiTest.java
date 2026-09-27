@@ -9,10 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
@@ -20,9 +24,13 @@ import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.client.FoundItemLookupException;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
 
 @DisplayName("API-11 검색 실행·API-12 후보 조회")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class SearchExecutionApiTest extends ApiTestSupport {
 
 	@MockitoBean(name = "policeFoundItemLookupClient")
@@ -31,8 +39,17 @@ class SearchExecutionApiTest extends ApiTestSupport {
 	@MockitoBean(name = "portalFoundItemLookupClient")
 	private FoundItemLookupClient portalClient;
 
+	@MockitoBean
+	private AiSearchConditionExtractor aiSearchConditionExtractor;
+
 	@Autowired
 	private LostItemCandidateRepository candidateRepository;
+
+	@BeforeEach
+	void mockAi() {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(
+				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
+	}
 
 	@Test
 	@DisplayName("두 출처가 모두 성공하면 COMPLETE이고 후보가 저장·정렬되어 반환된다")
