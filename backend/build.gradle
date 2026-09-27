@@ -21,6 +21,9 @@ dependencies {
 	// REST API 서버(Spring MVC, 내장 Tomcat, JSON 변환)와 외부 API(경찰청·AI) 호출용 RestClient
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 
+	// 경찰청 습득물정보 조회 API 응답(XML)을 자바 객체로 매핑(Issue #38). 버전은 Jackson BOM이 관리한다.
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+
 	// 요청 값 검증(@Valid, @NotBlank, @Email 등)
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 

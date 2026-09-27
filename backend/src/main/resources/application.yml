@@ -44,6 +44,10 @@ app:
     access-token-ttl: 30m
     refresh-token-ttl: 14d
 
+  # 경찰청·포털기관 습득물정보 조회 API(Issue #35). 키가 없으면 호출 시 오류 응답을 받을 뿐 시작은 실패하지 않는다.
+  public-data:
+    service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+
 logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)
