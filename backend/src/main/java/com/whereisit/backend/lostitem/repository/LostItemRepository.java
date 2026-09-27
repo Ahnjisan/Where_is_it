@@ -1,5 +1,6 @@
 package com.whereisit.backend.lostitem.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -20,4 +21,7 @@ public interface LostItemRepository extends JpaRepository<LostItem, Long> {
 
 	Page<LostItem> findByMemberIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDescIdDesc(
 			Long memberId, LostItemStatus status, Pageable pageable);
+
+	/** B01 일일 배치 대상. 만료·삭제 재확인은 배치가 각 건을 처리하는 시점에 다시 한다. */
+	List<LostItem> findByStatusAndDeletedAtIsNull(LostItemStatus status);
 }

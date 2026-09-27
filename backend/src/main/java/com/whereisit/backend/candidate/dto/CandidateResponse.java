@@ -5,10 +5,7 @@ import java.time.LocalDateTime;
 import com.whereisit.backend.candidate.entity.LostItemCandidate;
 import com.whereisit.backend.candidate.ranking.RankedCandidate;
 
-/**
- * API 명세 v2 05_응답필드 Candidate. notificationId는 이메일_알림 테이블이 생기는
- * Issue #37 전까지 항상 null이다.
- */
+/** API 명세 v2 05_응답필드 Candidate. */
 public record CandidateResponse(
 		String candidateId,
 		FoundItemResponse foundItem,
@@ -30,7 +27,7 @@ public record CandidateResponse(
 				candidate.getRecommendationReason(),
 				candidate.isCurrent(),
 				candidate.isBaseline(),
-				null,
+				candidate.getNotification() == null ? null : String.valueOf(candidate.getNotification().getId()),
 				candidate.getFirstSeenAt(),
 				candidate.getLastSeenAt());
 	}
