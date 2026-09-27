@@ -68,12 +68,26 @@ public class JwtTokenProvider {
 	 * 만료는 TOKEN_EXPIRED, 서명·형식·발급자·토큰 종류(RT를 넣은 경우 포함) 오류는 INVALID_TOKEN이다.
 	 */
 	public Long getMemberIdFromAccessToken(String token) {
-		Claims claims = parse(token);
+		Claims claims = parse(token, AuthErrorCode.TOKEN_EXPIRED, AuthErrorCode.INVALID_TOKEN);
+		requireType(claims, TokenType.ACCESS, AuthErrorCode.INVALID_TOKEN);
+		return parseMemberId(claims.getSubject(), AuthErrorCode.INVALID_TOKEN);
+	}
+
+	/**
+	 * RT를 검증하고 memberId를 돌려준다. 서명·만료·발급자·토큰 종류(AT를 넣은 경우 포함) 등 어떤 오류든
+	 * INVALID_REFRESH_TOKEN이다. DB에 남아 있는지(회전·로그아웃 여부)는 호출하는 쪽이 확인한다.
+	 */
+	public Long getMemberIdFromRefreshToken(String token) {
+		Claims claims = parse(token, AuthErrorCode.INVALID_REFRESH_TOKEN, AuthErrorCode.INVALID_REFRESH_TOKEN);
+		requireType(claims, TokenType.REFRESH, AuthErrorCode.INVALID_REFRESH_TOKEN);
+		return parseMemberId(claims.getSubject(), AuthErrorCode.INVALID_REFRESH_TOKEN);
+	}
+
+	private void requireType(Claims claims, TokenType type, AuthErrorCode errorCode) {
 		// 타입을 지정해 꺼내면(get(name, String.class)) 값이 문자열이 아닐 때 예외가 나서 500이 된다. 값으로만 비교한다.
-		if (!TokenType.ACCESS.getClaimValue().equals(claims.get(TokenType.CLAIM_NAME))) {
-			throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
+		if (!type.getClaimValue().equals(claims.get(TokenType.CLAIM_NAME))) {
+			throw new BusinessException(errorCode);
 		}
-		return parseMemberId(claims.getSubject());
 	}
 
 	private IssuedToken issue(Long memberId, TokenType type, long ttlSeconds) {
@@ -92,26 +106,26 @@ public class JwtTokenProvider {
 		return new IssuedToken(token, LocalDateTime.ofInstant(expiresAt, TimeConfig.KST));
 	}
 
-	private Claims parse(String token) {
+	private Claims parse(String token, AuthErrorCode expiredCode, AuthErrorCode invalidCode) {
 		try {
 			return parser.parseSignedClaims(token).getPayload();
 		} catch (ExpiredJwtException e) {
-			throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED);
+			throw new BusinessException(expiredCode);
 		} catch (JwtException | IllegalArgumentException e) {
 			// 원인(서명·형식 등)은 응답에 구분하지 않는다. 토큰 원문도 로그에 남기지 않는다.
-			throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
+			throw new BusinessException(invalidCode);
 		}
 	}
 
-	private Long parseMemberId(String subject) {
+	private Long parseMemberId(String subject, AuthErrorCode invalidCode) {
 		try {
 			long memberId = Long.parseLong(subject);
 			if (memberId < 1) {
-				throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
+				throw new BusinessException(invalidCode);
 			}
 			return memberId;
 		} catch (NumberFormatException e) {
-			throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
+			throw new BusinessException(invalidCode);
 		}
 	}
 

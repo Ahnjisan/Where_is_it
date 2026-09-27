@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whereisit.backend.auth.dto.LoginRequest;
 import com.whereisit.backend.auth.dto.LoginResponse;
+import com.whereisit.backend.auth.dto.RefreshTokenRequest;
 import com.whereisit.backend.auth.dto.SignupRequest;
 import com.whereisit.backend.auth.entity.RefreshToken;
 import com.whereisit.backend.auth.error.AuthErrorCode;
@@ -86,7 +87,47 @@ public class AuthService {
 		}
 
 		deleteExpiredRefreshTokens(member.getId());
+		return issueTokens(member);
+	}
 
+	/**
+	 * API-18. 요청의 RT를 지우고 새 AT·RT를 발급한다(회전). 새 RT의 만료는 지금부터 다시 14일이다.
+	 * 한 트랜잭션이므로, 새 토큰을 저장하다 실패하면 삭제도 롤백되어 기존 RT가 그대로 유효하다.
+	 */
+	@Transactional
+	public LoginResponse refresh(RefreshTokenRequest request) {
+		// 서명·만료·토큰 종류는 JWT로 확인한다. DB의 expires_at은 JWT의 exp와 같은 값이다.
+		Long memberId = jwtTokenProvider.getMemberIdFromRefreshToken(request.refreshToken());
+		Long refreshTokenId = refreshTokenRepository.findIdByTokenHash(TokenHasher.sha256Hex(request.refreshToken()))
+				.orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
+
+		// 같은 RT로 동시에 요청하면 둘 다 위 조회를 통과한다. PK 행 잠금 때문에 한쪽만 1행을 지우고,
+		// 나머지는 앞선 트랜잭션이 끝난 뒤 0행을 지우게 되어 거부된다.
+		// 해시 조건으로 바로 DELETE하지 않는 이유: 없는 값이면 유니크 인덱스에 갭 락이 걸린다(Issue #48).
+		if (refreshTokenRepository.deleteByIdReturningCount(refreshTokenId) == 0) {
+			throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+		}
+
+		// 해시가 토큰 원문 전체(sub 포함)에서 나오므로, 찾은 행의 회원은 토큰의 sub와 같다.
+		Member member = memberRepository.findById(memberId)
+				.orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN));
+		deleteExpiredRefreshTokens(memberId);
+		return issueTokens(member);
+	}
+
+	/**
+	 * API-19. 요청한 RT 하나만 지운다. 같은 회원의 다른 기기 RT는 그대로 둔다.
+	 * RT가 없거나, 만료됐거나, 이미 지워졌어도 성공으로 처리한다(멱등). 그래서 JWT 검증도 하지 않는다.
+	 * 이미 발급된 AT는 만료될 때까지 유효하다.
+	 */
+	@Transactional
+	public void logout(RefreshTokenRequest request) {
+		refreshTokenRepository.findIdByTokenHash(TokenHasher.sha256Hex(request.refreshToken()))
+				.ifPresent(refreshTokenRepository::deleteByIdReturningCount);
+	}
+
+	/** 새 AT·RT를 발급하고 RT의 해시를 저장한다. 로그인과 refresh가 같은 응답(LoginData)을 쓴다. */
+	private LoginResponse issueTokens(Member member) {
 		IssuedToken accessToken = jwtTokenProvider.issueAccessToken(member.getId());
 		IssuedToken refreshToken = jwtTokenProvider.issueRefreshToken(member.getId());
 		refreshTokenRepository.save(

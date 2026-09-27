@@ -37,7 +37,9 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						// 오류 페이지로 넘어간 요청까지 막으면 원래 오류 대신 401이 나간다.
 						.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login").permitAll()
+						// refresh·로그아웃은 AT 대신 요청 본문의 RT로 인증한다. 만료된 AT가 같이 와도 막지 않는다.
+						.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login",
+								"/api/auth/refresh", "/api/auth/logout").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
 				.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
