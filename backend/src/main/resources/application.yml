@@ -31,6 +31,14 @@ spring:
         # SQL 로그를 줄바꿈해 읽기 좋게 출력
         format_sql: true
 
+  data:
+    web:
+      pageable:
+        # API 명세 02_공통규칙: 내부 목록 page는 0부터, size 기본 20·최대 50.
+        default-page-size: 20
+        max-page-size: 50
+        one-indexed-parameters: false
+
   # JWT로만 인증하므로, Spring Security가 기본 계정(무작위 비밀번호)을 만들어 로그에 찍지 않게 한다.
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
