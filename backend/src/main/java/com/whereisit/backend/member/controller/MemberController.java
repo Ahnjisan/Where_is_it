@@ -44,7 +44,7 @@ public class MemberController {
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
-					description = "VALIDATION_ERROR(languageCode 누락·빈 값), UNSUPPORTED_LANGUAGE(ko·en 외 언어)"),
+					description = "VALIDATION_ERROR(languageCode 누락·빈 값, 정의되지 않은 필드), UNSUPPORTED_LANGUAGE(ko·en 외 언어)"),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH_REQUIRED(토큰 없음), INVALID_TOKEN, TOKEN_EXPIRED")
 	})
 	@PostMapping("/me")
