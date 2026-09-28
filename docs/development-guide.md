@@ -279,7 +279,9 @@ API-05 내부 후보 평가도 Responses API, `store=false`, strict JSON Schema�
 
 API-05 응답은 `lookupStatus`, `rankingStatus`, `persisted`, `warnings`, `candidates`를 최상위에 두는 평면 계약을 유지합니다. `candidates`는 현재 Frontend 호환용 이름일 뿐 Candidate DB 저장을 뜻하지 않으며 `candidateId=null`, `isCurrent=false`, `isBaseline=false`, `persisted=false`입니다. `foundItem.openId`는 포털기관 `atcId`와 같고 `fdSn`은 문자열 원형을 보존합니다. 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지되어 새로고침 시 만료되며, 재검색하면 새 `lostItemId`가 생성될 수 있습니다. 결과 재조회 API와 Snapshot·중복 알림 정책은 후속 작업입니다.
 
-API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, API-16, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다. API-17 7일 추적 활성화(`POST /api/lost-items/{lostItemId}/tracking`)는 구현되어 있으며 9절의 방식으로 동작합니다.
+API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다. API-17 7일 추적 활성화(`POST /api/lost-items/{lostItemId}/tracking`)는 구현되어 있으며 9절의 방식으로 동작합니다.
+
+API-16 `GET /api/members/me/lost-items`는 로그인 회원의 추적 등록 건(`TRACKING`·`EXPIRED`)만 생성 시각 DESC, 분실물 ID DESC로 조회합니다. `SEARCHING`, 논리 삭제 건, 다른 회원의 건은 제외하고 `status`·`sort` 요청값은 받지 않습니다. `page`(0부터)·`size`(기본 20, 최대 50, 초과 시 50)만 쓰며 응답은 `LostItemPage`입니다. 만료 시각이 지난 `TRACKING`은 응답에서만 `EXPIRED`로 표시하고 DB 상태는 바꾸지 않으며, 외부 API를 호출하지 않습니다.
 
 ## 9. 추적 재검색과 이메일 알림
 

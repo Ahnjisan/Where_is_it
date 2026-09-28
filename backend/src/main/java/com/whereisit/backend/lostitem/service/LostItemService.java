@@ -46,6 +46,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LostItemService {
 
+	/** API-16이 보여주는 상태. SEARCHING(추적 등록 전)은 제외한다. */
+	private static final List<LostItemStatus> TRACKED_STATUSES = List.of(LostItemStatus.TRACKING, LostItemStatus.EXPIRED);
+
+	/** API 명세 02_공통규칙: size 최대 50. application.yml의 max-page-size와 같다. */
+	private static final int MAX_PAGE_SIZE = 50;
+
 	private final LostItemRepository lostItemRepository;
 	private final ChatMessageRepository chatMessageRepository;
 	private final MemberRepository memberRepository;
@@ -76,6 +82,18 @@ public class LostItemService {
 				? lostItemRepository.findByMemberIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(memberId, pageable)
 				: lostItemRepository.findByMemberIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDescIdDesc(memberId, status, pageable);
 		return LostItemPageResponse.from(page, clock, id -> (int) candidateRepository.countByLostItemIdAndCurrentTrue(id));
+	}
+
+	/**
+	 * API-16. 추적을 등록한 건(TRACKING·EXPIRED)만 조회한다. 정렬은 저장소 메서드로 고정하므로 요청의 sort는 쓰지 않고
+	 * page·size만 옮긴다. 만료 시각이 지난 TRACKING은 응답에서만 EXPIRED로 보이고 DB 상태는 바꾸지 않는다.
+	 */
+	@Transactional(readOnly = true)
+	public LostItemPageResponse listTracked(Long memberId, Pageable pageable) {
+		Pageable pageOnly = PageRequest.of(pageable.getPageNumber(), Math.min(pageable.getPageSize(), MAX_PAGE_SIZE));
+		Page<LostItem> page = lostItemRepository.findByMemberIdAndDeletedAtIsNullAndStatusInOrderByCreatedAtDescIdDesc(
+				memberId, TRACKED_STATUSES, pageOnly);
+		return LostItemPageResponse.from(page, clock, this::currentCandidateCount);
 	}
 
 	/**

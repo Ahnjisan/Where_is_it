@@ -1,5 +1,6 @@
 package com.whereisit.backend.lostitem.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,4 +41,8 @@ public interface LostItemRepository extends JpaRepository<LostItem, Long> {
 
 	Page<LostItem> findByMemberIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDescIdDesc(
 			Long memberId, LostItemStatus status, Pageable pageable);
+
+	/** API-16. 추적을 등록한 건(TRACKING·EXPIRED)만 생성시각·ID 역순으로 고정 정렬한다. */
+	Page<LostItem> findByMemberIdAndDeletedAtIsNullAndStatusInOrderByCreatedAtDescIdDesc(
+			Long memberId, Collection<LostItemStatus> statuses, Pageable pageable);
 }
