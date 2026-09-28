@@ -3,6 +3,7 @@ package com.whereisit.backend.founditem.client;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.web.client.RestClient;
@@ -24,6 +25,10 @@ public class FoundItemLookupClient {
 	private static final String OK_RESULT_CODE = "00";
 	private static final int PAGE_NO = 1;
 	private static final int NUM_OF_ROWS = 100;
+	/** 날짜 범위 전량 조회의 페이지 크기. 2026-09-28 실호출에서 5000건 1회 호출이 약 4.5초였다. */
+	static final int BULK_NUM_OF_ROWS = 5000;
+	/** 전량 조회가 끝나지 않는 경우를 막는 상한(5000건 × 20페이지 = 10만 건). */
+	static final int MAX_BULK_PAGES = 20;
 
 	private final RestClient restClient;
 	private final String serviceKey;
@@ -115,6 +120,46 @@ public class FoundItemLookupClient {
 			throw new FoundItemLookupException(sourceType, e);
 		}
 		return entries(response);
+	}
+
+	/**
+	 * 분류·색상·지역 코드 없이 습득일 범위만으로 모든 페이지를 받는다(추적 재검색용).
+	 * 코드 없이 날짜만 주면 습득일 기준으로 정확히 걸러진다(2026-09-28 실호출 확인). 물품명·보관장소 매칭은 호출자가 한다.
+	 */
+	public List<FoundItemListEntry> searchAllByFoundDate(LocalDate startDate, LocalDate endDate) {
+		List<FoundItemListEntry> all = new ArrayList<>();
+		for (int page = 1; page <= MAX_BULK_PAGES; page++) {
+			LosfundApiResponse response = fetchFoundDatePage(startDate, endDate, page);
+			List<FoundItemListEntry> entries = entries(response);
+			all.addAll(entries);
+			Integer totalCount = response.body == null ? null : response.body.totalCount;
+			boolean lastPage = entries.size() < BULK_NUM_OF_ROWS
+					|| (totalCount != null && all.size() >= totalCount);
+			if (lastPage) {
+				return all;
+			}
+		}
+		log.warn("{} 습득일 범위 조회가 {}페이지를 넘어 이후 결과를 생략합니다: {}~{}",
+				sourceType, MAX_BULK_PAGES, startDate, endDate);
+		return all;
+	}
+
+	private LosfundApiResponse fetchFoundDatePage(LocalDate startDate, LocalDate endDate, int page) {
+		try {
+			return restClient.get()
+					.uri(uriBuilder -> uriBuilder
+							.queryParam("serviceKey", serviceKey)
+							.queryParam("pageNo", page)
+							.queryParam("numOfRows", BULK_NUM_OF_ROWS)
+							.queryParam("START_YMD", startDate.format(YMD))
+							.queryParam("END_YMD", endDate.format(YMD))
+							.build())
+					.retrieve()
+					.body(LosfundApiResponse.class);
+		}
+		catch (RestClientException e) {
+			throw new FoundItemLookupException(sourceType, e);
+		}
 	}
 
 	private List<FoundItemListEntry> entries(LosfundApiResponse response) {
