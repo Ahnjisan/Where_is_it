@@ -86,6 +86,7 @@ public class SearchExecutionPersistenceService {
 		}
 		try {
 			lostItem.updateAiSearchConditions(result.lostDateFrom(), result.lostDateTo(), result.lostPlaceText());
+			lostItem.updateSearchKeywords(result.productNameKeyword(), result.storagePlaceKeyword());
 		}
 		catch (IllegalArgumentException e) {
 			throw new BusinessException(SearchErrorCode.AI_CONDITION_UNAVAILABLE);
