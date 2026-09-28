@@ -15,6 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
+import com.whereisit.backend.founditem.client.FoundItemDetail;
+import com.whereisit.backend.founditem.client.FoundItemDetailClient;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.client.FoundItemSearchQuery;
@@ -37,13 +41,17 @@ class FoundItemCollectionServiceTest {
 	private Clock clock;
 
 	private FoundItemLookupClient policeClient;
+	private FoundItemDetailClient policeDetailClient;
 	private FoundItemCollectionService collectionService;
 
 	@BeforeEach
 	void setUp() {
 		policeClient = Mockito.mock(FoundItemLookupClient.class);
 		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
-		collectionService = new FoundItemCollectionService(List.of(policeClient), foundItemRepository, clock);
+		policeDetailClient = Mockito.mock(FoundItemDetailClient.class);
+		when(policeDetailClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+		collectionService = new FoundItemCollectionService(
+				List.of(policeClient), List.of(policeDetailClient), foundItemRepository, clock);
 	}
 
 	@Test
@@ -80,7 +88,8 @@ class FoundItemCollectionServiceTest {
 				new FoundItemListEntry(FoundItemSourceType.POLICE, "999", "1", "우산", null, null, null, null, null, null)));
 		when(portalClient.search(query)).thenReturn(List.of(
 				new FoundItemListEntry(FoundItemSourceType.PORTAL, "999", "1", "우산(포털)", null, null, null, null, null, null)));
-		collectionService = new FoundItemCollectionService(List.of(policeClient, portalClient), foundItemRepository, clock);
+		collectionService = new FoundItemCollectionService(
+				List.of(policeClient, portalClient), List.of(policeDetailClient), foundItemRepository, clock);
 
 		List<FoundItemListEntry> entries = new java.util.ArrayList<>(
 				collectionService.lookup(FoundItemSourceType.POLICE, query));
@@ -89,5 +98,22 @@ class FoundItemCollectionServiceTest {
 
 		assertThat(result).hasSize(2);
 		assertThat(foundItemRepository.count()).isEqualTo(2);
+	}
+
+	@Test
+	void applyDetailFillsDetailFieldsAndStampsDetailFetchedAt() {
+		FoundItem foundItem = foundItemRepository.save(
+				FoundItem.create(FoundItemSourceType.POLICE, "12345", "1", clock.instant().atZone(clock.getZone()).toLocalDateTime()));
+		when(policeDetailClient.fetchDetail("12345", "1"))
+				.thenReturn(Optional.of(new FoundItemDetail("서울역 유실물센터", "02-1234-5678", "검정 장지갑")));
+
+		Optional<FoundItemDetail> detail = collectionService.fetchDetail(FoundItemSourceType.POLICE, "12345", "1");
+		assertThat(detail).isPresent();
+
+		FoundItem updated = collectionService.applyDetail(foundItem.getId(), detail.get());
+		assertThat(updated.getFoundPlace()).isEqualTo("서울역 유실물센터");
+		assertThat(updated.getStoragePhone()).isEqualTo("02-1234-5678");
+		assertThat(updated.getDescription()).isEqualTo("검정 장지갑");
+		assertThat(updated.getDetailFetchedAt()).isNotNull();
 	}
 }

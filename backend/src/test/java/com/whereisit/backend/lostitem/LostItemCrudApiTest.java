@@ -1,17 +1,24 @@
 package com.whereisit.backend.lostitem;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,8 +28,16 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.whereisit.backend.candidate.entity.LostItemCandidate;
+import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
+import com.whereisit.backend.founditem.client.FoundItemDetail;
+import com.whereisit.backend.founditem.client.FoundItemDetailClient;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
+import com.whereisit.backend.founditem.entity.FoundItem;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
+import com.whereisit.backend.founditem.repository.FoundItemRepository;
+import com.whereisit.backend.lostitem.entity.LostItem;
+import com.whereisit.backend.lostitem.repository.LostItemRepository;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
@@ -44,8 +59,23 @@ class LostItemCrudApiTest extends ApiTestSupport {
 	@MockitoBean(name = "portalFoundItemLookupClient")
 	private FoundItemLookupClient portalClient;
 
+	@MockitoBean(name = "policeFoundItemDetailClient")
+	private FoundItemDetailClient policeDetailClient;
+
+	@MockitoBean(name = "portalFoundItemDetailClient")
+	private FoundItemDetailClient portalDetailClient;
+
 	@MockitoBean
 	private AiSearchConditionExtractor aiSearchConditionExtractor;
+
+	@Autowired
+	private LostItemRepository lostItemRepository;
+
+	@Autowired
+	private FoundItemRepository foundItemRepository;
+
+	@Autowired
+	private LostItemCandidateRepository candidateRepository;
 
 	@BeforeEach
 	void mockInitialSearch() {
@@ -53,6 +83,8 @@ class LostItemCrudApiTest extends ApiTestSupport {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenReturn(List.of());
 		when(portalClient.search(any())).thenReturn(List.of());
+		when(policeDetailClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+		when(portalDetailClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(
 				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
 	}
@@ -132,11 +164,45 @@ class LostItemCrudApiTest extends ApiTestSupport {
 
 		authorizedGet("/api/lost-items/" + lostItemId, ownerToken)
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data.lostItemId").value(lostItemId));
+				.andExpect(jsonPath("$.data.lostItemId").value(lostItemId))
+				.andExpect(jsonPath("$.data.currentCandidate").doesNotExist());
 
 		authorizedGet("/api/lost-items/" + lostItemId, otherToken)
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+	}
+
+	@Test
+	@DisabledIfSystemProperty(named = "spring.profiles.active", matches = "sqlite",
+			disabledReason = "상세조회는 외부 호출 동안 트랜잭션을 내려놓고 새 트랜잭션을 여는데, "
+					+ "커넥션 풀이 1개뿐인 SQLite에서는 같은 스레드가 커넥션 2개를 동시에 요구해 타임아웃난다. MySQL에서만 확인한다.")
+	@DisplayName("API-07 상세조회는 현재 결과 1위 후보의 상세를 최초 1회만 조회해 채운다")
+	void detailFetchesTopCandidateDetailOnceAndCachesIt() throws Exception {
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "lost blue wallet");
+
+		LostItem lostItem = lostItemRepository.findById(Long.valueOf(lostItemId)).orElseThrow();
+		FoundItem foundItem = foundItemRepository.save(
+				FoundItem.create(FoundItemSourceType.POLICE, "12345", "1", clock.instant().atZone(clock.getZone()).toLocalDateTime()));
+		LostItemCandidate candidate = LostItemCandidate.create(lostItem, foundItem, LocalDateTime.now(clock));
+		candidate.markSeenInCurrentResult(1, "색상이 일치합니다", true, LocalDateTime.now(clock));
+		candidateRepository.save(candidate);
+
+		when(policeDetailClient.fetchDetail("12345", "1"))
+				.thenReturn(Optional.of(new FoundItemDetail("서울역 유실물센터", "02-1234-5678", "검정 장지갑")));
+
+		authorizedGet("/api/lost-items/" + lostItemId, accessToken)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.currentCandidate.foundItem.foundPlace").value("서울역 유실물센터"))
+				.andExpect(jsonPath("$.data.currentCandidate.foundItem.storagePhone").value("02-1234-5678"))
+				.andExpect(jsonPath("$.data.currentCandidate.rank").value(1));
+
+		authorizedGet("/api/lost-items/" + lostItemId, accessToken)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.currentCandidate.foundItem.foundPlace").value("서울역 유실물센터"));
+
+		verify(policeDetailClient, times(1)).fetchDetail("12345", "1");
+		verify(portalDetailClient, never()).fetchDetail(any(), any());
 	}
 
 	@Test

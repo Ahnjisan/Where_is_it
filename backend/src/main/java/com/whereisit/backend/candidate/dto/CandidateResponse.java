@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.whereisit.backend.candidate.entity.LostItemCandidate;
 import com.whereisit.backend.candidate.ranking.RankedCandidate;
+import com.whereisit.backend.founditem.entity.FoundItem;
 
 /**
  * API 명세 v2 05_응답필드 Candidate. notificationId는 이메일_알림 테이블이 생기는
@@ -22,9 +23,17 @@ public record CandidateResponse(
 		LocalDateTime lastSeenAt) {
 
 	public static CandidateResponse from(LostItemCandidate candidate) {
+		return from(candidate, candidate.getFoundItem());
+	}
+
+	/**
+	 * API-07 상세조회용. detail 조회 직후에는 candidate.getFoundItem()이 이전 트랜잭션에서
+	 * 읽은 오래된(상세 반영 전) 인스턴스일 수 있어, 방금 갱신한 FoundItem을 따로 받아 조립한다.
+	 */
+	public static CandidateResponse from(LostItemCandidate candidate, FoundItem foundItem) {
 		return new CandidateResponse(
 				String.valueOf(candidate.getId()),
-				FoundItemResponse.from(candidate.getFoundItem()),
+				FoundItemResponse.from(foundItem),
 				candidate.getRankNo(),
 				candidate.getIsSimilar(),
 				candidate.getRecommendationReason(),
