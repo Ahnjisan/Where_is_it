@@ -183,7 +183,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={isSubmitting || (query.trim().length === 0 && user)}
+                  disabled={isSubmitting || query.trim().length === 0}
                   className="w-9 h-9 rounded-full bg-[#85132d] hover:bg-[#701025] disabled:bg-gray-200 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all active:scale-90 shadow-sm cursor-pointer"
                   aria-label="전송"
                 >
