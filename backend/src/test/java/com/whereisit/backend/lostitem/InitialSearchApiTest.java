@@ -35,7 +35,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.whereisit.backend.candidate.ranking.CandidateRankingRequest;
 import com.whereisit.backend.candidate.ranking.CandidateRankingResult;
 import com.whereisit.backend.candidate.ranking.RankedCandidate;
-import com.whereisit.backend.candidate.ranking.SimpleTextSimilarityRanker;
+import com.whereisit.backend.candidate.ranking.initial.InitialSearchCandidateRanker;
+import com.whereisit.backend.candidate.ranking.initial.InitialSearchRuleScorer;
 import com.whereisit.backend.candidate.ranking.openai.OpenAiCandidateRanker;
 import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
@@ -78,7 +79,11 @@ class InitialSearchApiTest extends ApiTestSupport {
 	private AiSearchConditionExtractor aiSearchConditionExtractor;
 
 	@MockitoBean
-	private OpenAiCandidateRanker candidateRanker;
+	private InitialSearchCandidateRanker candidateRanker;
+
+	/** Legacy API-11·14 랭커. API-05는 이 Bean을 호출하지 않아야 한다. */
+	@MockitoBean
+	private OpenAiCandidateRanker legacyCandidateRanker;
 
 	@Autowired private LostItemRepository lostItemRepository;
 	@Autowired private ChatMessageRepository chatMessageRepository;
@@ -135,9 +140,17 @@ class InitialSearchApiTest extends ApiTestSupport {
 				.andExpect(jsonPath("$.data.candidates[0].reason").value("AI 추천 이유 1"))
 				.andExpect(jsonPath("$.data.candidates[0].isCurrent").value(false))
 				.andExpect(jsonPath("$.data.candidates[0].isBaseline").value(false))
+				.andExpect(jsonPath("$.data.candidates[0].isSimilar").value(true))
+				.andExpect(jsonPath("$.data.candidates[0].score").doesNotExist())
+				.andExpect(jsonPath("$.data.candidates[1].rank").value(2))
+				.andExpect(jsonPath("$.data.clarificationQuestions").isArray())
 				.andReturn();
 
 		JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");
+		assertThat(data.fieldNames()).toIterable().containsExactlyInAnyOrder("lostItem", "assistantMessage",
+				"lookupStatus", "rankingStatus", "persisted", "warnings", "candidates", "clarificationQuestions");
+		assertThat(data.get("candidates").get(0).has("score")).isFalse();
+		assertThat(data.get("candidates").get(0).get("foundItem").has("foundItemId")).isTrue();
 		String lostItemId = data.get("lostItem").get("lostItemId").asText();
 		assertThat(result.getResponse().getHeader(HttpHeaders.LOCATION)).isEqualTo("/api/lost-items/" + lostItemId);
 		assertThat(userCommittedBeforeAi).isTrue();
@@ -150,6 +163,7 @@ class InitialSearchApiTest extends ApiTestSupport {
 		assertThat(foundItemRepository.count()).isEqualTo(2);
 		verify(policeClient, never()).search(any());
 		verify(legacyPortalClient, never()).search(any());
+		verify(legacyCandidateRanker, never()).rank(any());
 
 		ArgumentCaptor<PortalFoundItemSearchQuery> query = ArgumentCaptor.forClass(PortalFoundItemSearchQuery.class);
 		verify(portalNameStorageClient).search(query.capture());
@@ -174,7 +188,7 @@ class InitialSearchApiTest extends ApiTestSupport {
 	@Test
 	void rankingFailureReturnsRuleBasedTransientFallback() throws Exception {
 		when(portalNameStorageClient.search(any())).thenReturn(List.of(found("F-1", "1", "검은 지갑")));
-		doAnswer(invocation -> new SimpleTextSimilarityRanker().rank(invocation.getArgument(0)))
+		doAnswer(invocation -> new InitialSearchRuleScorer().fallback(invocation.getArgument(0)))
 				.when(candidateRanker).rank(any());
 		String token = signupAndLogin("fallback@example.test").get("accessToken").asText();
 		authorizedPostJson("/api/lost-items", token, Map.of("description", "검은 지갑", "languageCode", "ko"))
@@ -190,39 +204,99 @@ class InitialSearchApiTest extends ApiTestSupport {
 	}
 
 	@Test
-	void oneAndOneHundredResultsAreRanked() throws Exception {
+	void oneAndTwentyResultsAreRankedWithoutLimitWarning() throws Exception {
 		when(portalNameStorageClient.search(any())).thenReturn(List.of(found("ONE", "1", "지갑")));
 		String oneToken = signupAndLogin("one@example.test").get("accessToken").asText();
 		authorizedPostJson("/api/lost-items", oneToken, Map.of("description", "지갑"))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.candidates.length()").value(1));
+				.andExpect(jsonPath("$.data.candidates.length()").value(1))
+				.andExpect(jsonPath("$.data.candidates[0].rank").value(1));
 
-		when(portalNameStorageClient.search(any())).thenReturn(IntStream.rangeClosed(1, 100)
-				.mapToObj(i -> found("H-" + i, Integer.toString(i), "물품 " + i)).toList());
-		String hundredToken = signupAndLogin("hundred@example.test").get("accessToken").asText();
-		authorizedPostJson("/api/lost-items", hundredToken, Map.of("description", "물품"))
+		when(portalNameStorageClient.search(any())).thenReturn(IntStream.rangeClosed(1, 20)
+				.mapToObj(i -> found("T-" + i, Integer.toString(i), "물품 " + i)).toList());
+		String twentyToken = signupAndLogin("twenty@example.test").get("accessToken").asText();
+		authorizedPostJson("/api/lost-items", twentyToken, Map.of("description", "물품"))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.candidates.length()").value(100))
-				.andExpect(jsonPath("$.data.candidates[99].rank").value(100));
+				.andExpect(jsonPath("$.data.candidates.length()").value(20))
+				.andExpect(jsonPath("$.data.candidates[19].rank").value(20))
+				.andExpect(jsonPath("$.data.warnings.length()").value(0));
 		assertThat(candidateRepository.count()).isZero();
 	}
 
 	@Test
-	void naturalKeyDuplicatesAreRemovedAndOneHundredOneArePreselected() throws Exception {
-		List<FoundItemListEntry> entries = new ArrayList<>(IntStream.rangeClosed(0, 100)
-				.mapToObj(i -> found("L-%03d".formatted(i), Integer.toString(i), "item-" + i)).toList());
-		entries.add(entries.get(100));
+	void moreThanTwentyResultsArePreselectedToDeterministicTopTwenty() throws Exception {
+		for (int count : new int[] {21, 72, 100, 101}) {
+			clearInvocations(candidateRanker);
+			List<FoundItemListEntry> entries = new ArrayList<>(IntStream.range(0, count)
+					.mapToObj(i -> found("L-%03d".formatted(i), "%03d".formatted(i), "item-" + i)).toList());
+			entries.add(entries.get(count - 1));
+			when(portalNameStorageClient.search(any())).thenReturn(entries);
+			ArgumentCaptor<CandidateRankingRequest> captor = ArgumentCaptor.forClass(CandidateRankingRequest.class);
+			String token = signupAndLogin("limit-" + count + "@example.test").get("accessToken").asText();
+
+			authorizedPostJson("/api/lost-items", token, Map.of("description", "일치하지 않는 설명"))
+					.andExpect(status().isCreated())
+					.andExpect(jsonPath("$.data.rankingStatus").value("SUCCESS"))
+					.andExpect(jsonPath("$.data.persisted").value(false))
+					.andExpect(jsonPath("$.data.candidates.length()").value(20))
+					.andExpect(jsonPath("$.data.candidates[0].foundItem.atcId").value("L-000"))
+					.andExpect(jsonPath("$.data.candidates[0].foundItem.fdSn").value("000"))
+					.andExpect(jsonPath("$.data.candidates[19].foundItem.atcId").value("L-019"))
+					.andExpect(jsonPath("$.data.candidates[19].rank").value(20))
+					.andExpect(jsonPath("$.data.warnings.length()").value(1))
+					.andExpect(jsonPath("$.data.warnings[0]").value("RESULT_LIMIT_REACHED"));
+
+			verify(candidateRanker).rank(captor.capture());
+			verify(legacyCandidateRanker, never()).rank(any());
+			assertThat(captor.getValue().candidates()).extracting(candidate -> candidate.candidateKey())
+					.containsExactlyElementsOf(IntStream.rangeClosed(1, 20).mapToObj(i -> "c" + i).toList());
+			assertThat(captor.getValue().candidates()).extracting(candidate -> candidate.productName())
+					.containsExactlyElementsOf(IntStream.range(0, 20).mapToObj(i -> "item-" + i).toList());
+			assertThat(candidateRepository.count()).isZero();
+			assertThat(foundItemRepository.count()).isEqualTo(20);
+		}
+	}
+
+	@Test
+	void aiRankingAndFallbackUseSameTwentyCandidateSet() throws Exception {
+		List<FoundItemListEntry> entries = IntStream.range(0, 72)
+				.mapToObj(i -> found("S-%03d".formatted(i), "%03d".formatted(i),
+						i % 9 == 0 ? "검은색지갑" : "물품 " + i)).toList();
 		when(portalNameStorageClient.search(any())).thenReturn(entries);
 		ArgumentCaptor<CandidateRankingRequest> captor = ArgumentCaptor.forClass(CandidateRankingRequest.class);
-		String token = signupAndLogin("limit@example.test").get("accessToken").asText();
-		authorizedPostJson("/api/lost-items", token, Map.of("description", "일치하지 않는 설명"))
+
+		String successToken = signupAndLogin("same-success@example.test").get("accessToken").asText();
+		authorizedPostJson("/api/lost-items", successToken, Map.of("description", "검은색 지갑", "languageCode", "ko"))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.candidates.length()").value(100))
-				.andExpect(jsonPath("$.data.warnings[0]").value("RESULT_LIMIT_REACHED"));
-		verify(candidateRanker).rank(captor.capture());
-		assertThat(captor.getValue().candidates()).hasSize(100);
-		assertThat(captor.getValue().candidates()).extracting(candidate -> candidate.candidateKey())
-				.doesNotHaveDuplicates();
+				.andExpect(jsonPath("$.data.rankingStatus").value("SUCCESS"))
+				.andExpect(jsonPath("$.data.candidates.length()").value(20));
+
+		doAnswer(invocation -> new InitialSearchRuleScorer().fallback(invocation.getArgument(0)))
+				.when(candidateRanker).rank(any());
+		String fallbackToken = signupAndLogin("same-fallback@example.test").get("accessToken").asText();
+		var fallback = authorizedPostJson("/api/lost-items", fallbackToken,
+				Map.of("description", "검은색 지갑", "languageCode", "ko"))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.lookupStatus").value("COMPLETE"))
+				.andExpect(jsonPath("$.data.rankingStatus").value("UNAVAILABLE"))
+				.andExpect(jsonPath("$.data.persisted").value(false))
+				.andExpect(jsonPath("$.data.warnings[0]").value("AI_RANKING_UNAVAILABLE"))
+				.andExpect(jsonPath("$.data.warnings[1]").value("RESULT_LIMIT_REACHED"))
+				.andExpect(jsonPath("$.data.warnings.length()").value(2))
+				.andExpect(jsonPath("$.data.candidates.length()").value(20))
+				.andExpect(jsonPath("$.data.candidates[0].candidateId").doesNotExist())
+				.andExpect(jsonPath("$.data.candidates[0].foundItem.productName").value("검은색지갑"))
+				.andExpect(jsonPath("$.data.candidates[0].isCurrent").value(false))
+				.andExpect(jsonPath("$.data.candidates[0].isBaseline").value(false))
+				.andReturn();
+
+		verify(candidateRanker, org.mockito.Mockito.times(2)).rank(captor.capture());
+		assertThat(captor.getAllValues().get(1)).isEqualTo(captor.getAllValues().get(0));
+		JsonNode candidates = objectMapper.readTree(fallback.getResponse().getContentAsString())
+				.get("data").get("candidates");
+		List<Integer> ranks = new ArrayList<>();
+		candidates.forEach(candidate -> ranks.add(candidate.get("rank").intValue()));
+		assertThat(ranks).containsExactlyElementsOf(IntStream.rangeClosed(1, 20).boxed().toList());
 		assertThat(candidateRepository.count()).isZero();
 	}
 
