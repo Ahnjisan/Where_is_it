@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
@@ -29,24 +30,20 @@ public class FoundItemCollectionService {
 	private final FoundItemRepository foundItemRepository;
 	private final Clock clock;
 
-	/** 지정한 출처 하나를 조회하고 저장한다. */
-	@Transactional
-	public List<FoundItem> collect(FoundItemSourceType sourceType, FoundItemSearchQuery query) {
+	/** 지정한 출처 하나를 트랜잭션 없이 조회한다. */
+	@Transactional(propagation = Propagation.NEVER)
+	public List<FoundItemListEntry> lookup(FoundItemSourceType sourceType, FoundItemSearchQuery query) {
 		FoundItemLookupClient client = lookupClients.stream()
 				.filter(candidate -> candidate.sourceType() == sourceType)
 				.findFirst()
 				.orElseThrow(() -> new NoSuchElementException("No lookup client for " + sourceType));
-
-		return client.search(query).stream().map(this::upsert).toList();
+		return client.search(query);
 	}
 
-	/** POLICE·PORTAL을 모두 조회한다. 한쪽이 실패하면 예외가 그대로 올라가 부분 실패를 숨기지 않는다. */
-	@Transactional
-	public List<FoundItem> collectAllSources(FoundItemSearchQuery query) {
-		return lookupClients.stream()
-				.flatMap(client -> client.search(query).stream())
-				.map(this::upsert)
-				.toList();
+	/** 이미 조회한 응답을 호출자의 짧은 저장 트랜잭션에 참여해 upsert한다. */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public List<FoundItem> persist(List<FoundItemListEntry> entries) {
+		return entries.stream().map(this::upsert).toList();
 	}
 
 	private FoundItem upsert(FoundItemListEntry entry) {

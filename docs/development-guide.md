@@ -231,3 +231,19 @@ docker compose exec mysql mysql -u YOUR_DB_USERNAME -p where_is_it
 [ ] .env.example이 추적 가능함
 [ ] 실제 비밀번호·API Key·Token이 추적 파일에 없음
 ```
+
+## 8. OpenAI 자연어 검색조건 설정
+
+API-11의 INITIAL·TEXT 모드는 Backend에서 OpenAI Responses API를 호출해 분실 날짜·장소를 구조화하고 사용자 언어의 ASSISTANT 메시지를 생성합니다. API Key는 Frontend로 전달하지 않습니다.
+
+| 환경변수 | 필수 여부 | 설명 |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | AI 호출 시 필수 | OpenAI 인증 Key. 코드·로그·응답에 기록하지 않습니다. |
+| `OPENAI_MODEL` | AI 호출 시 필수 | strict Structured Outputs를 지원하는 모델. 코드 기본값은 없습니다. |
+| `OPENAI_TIMEOUT` | 선택 | 연결·응답 제한시간. 기본값은 `10s`입니다. |
+
+Key 또는 model이 없어도 애플리케이션은 시작하지만 AI 기능 호출은 `AI_CONDITION_UNAVAILABLE`로 실패합니다. OpenAI와 경찰·포털 HTTP 호출은 DB 트랜잭션 밖에서 실행하며, 호출 전후의 USER 메시지·조건·후보 저장만 짧은 트랜잭션으로 처리합니다. OpenAI 호출은 자동 재시도하지 않습니다.
+
+Timeout과 OpenAI HTTP 408·504는 `SEARCH_TIMEOUT`, HTTP 429는 `RATE_LIMITED`, 그 밖의 HTTP 오류·refusal·빈 응답·잘못된 JSON 또는 Schema 위반은 `AI_CONDITION_UNAVAILABLE`로 응답합니다.
+
+테스트는 Fake Port와 Spring HTTP Mock만 사용합니다. 테스트에서 실제 OpenAI Key·모델을 사용하거나 OpenAI·경찰청·포털기관 외부 네트워크를 호출하지 않습니다.

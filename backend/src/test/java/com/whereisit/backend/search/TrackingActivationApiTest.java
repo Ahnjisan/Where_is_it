@@ -8,18 +8,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.client.FoundItemLookupException;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
 
 @DisplayName("API-14 7일 추적 활성화")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class TrackingActivationApiTest extends ApiTestSupport {
 
 	@MockitoBean(name = "policeFoundItemLookupClient")
@@ -27,6 +43,15 @@ class TrackingActivationApiTest extends ApiTestSupport {
 
 	@MockitoBean(name = "portalFoundItemLookupClient")
 	private FoundItemLookupClient portalClient;
+
+	@MockitoBean
+	private AiSearchConditionExtractor aiSearchConditionExtractor;
+
+	@BeforeEach
+	void mockAi() {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(
+				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
+	}
 
 	@Test
 	@DisplayName("TC-16 완전조회 가능하면 TRACKING이 되고 기준 후보가 저장되며 만료는 시작+168시간이다")

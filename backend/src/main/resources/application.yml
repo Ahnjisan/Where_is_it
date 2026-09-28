@@ -56,6 +56,12 @@ app:
   public-data:
     service-key: ${PUBLIC_DATA_SERVICE_KEY:}
 
+  openai:
+    # Key와 model은 AI 기능 호출 시 검사한다. 값이 없어도 애플리케이션은 시작할 수 있다.
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:}
+    timeout: ${OPENAI_TIMEOUT:10s}
+
 logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)

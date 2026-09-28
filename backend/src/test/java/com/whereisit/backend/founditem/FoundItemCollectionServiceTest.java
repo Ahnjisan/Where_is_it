@@ -53,7 +53,8 @@ class FoundItemCollectionServiceTest {
 				new FoundItemListEntry(FoundItemSourceType.POLICE, "12345", "1", "지갑", "지갑 습득", "가방", "파랑",
 						LocalDate.of(2026, 9, 20), "서울청", "https://example.test/a.jpg")));
 
-		List<FoundItem> firstRun = collectionService.collect(FoundItemSourceType.POLICE, query);
+		List<FoundItem> firstRun = collectionService.persist(
+				collectionService.lookup(FoundItemSourceType.POLICE, query));
 		assertThat(firstRun).hasSize(1);
 		assertThat(foundItemRepository.count()).isEqualTo(1);
 
@@ -61,7 +62,8 @@ class FoundItemCollectionServiceTest {
 				new FoundItemListEntry(FoundItemSourceType.POLICE, "12345", "1", "지갑(수정)", "지갑 습득", "가방", "파랑",
 						LocalDate.of(2026, 9, 20), "서울청", "https://example.test/a.jpg")));
 
-		List<FoundItem> secondRun = collectionService.collect(FoundItemSourceType.POLICE, query);
+		List<FoundItem> secondRun = collectionService.persist(
+				collectionService.lookup(FoundItemSourceType.POLICE, query));
 
 		assertThat(foundItemRepository.count()).isEqualTo(1);
 		assertThat(secondRun.get(0).getId()).isEqualTo(firstRun.get(0).getId());
@@ -80,7 +82,10 @@ class FoundItemCollectionServiceTest {
 				new FoundItemListEntry(FoundItemSourceType.PORTAL, "999", "1", "우산(포털)", null, null, null, null, null, null)));
 		collectionService = new FoundItemCollectionService(List.of(policeClient, portalClient), foundItemRepository, clock);
 
-		List<FoundItem> result = collectionService.collectAllSources(query);
+		List<FoundItemListEntry> entries = new java.util.ArrayList<>(
+				collectionService.lookup(FoundItemSourceType.POLICE, query));
+		entries.addAll(collectionService.lookup(FoundItemSourceType.PORTAL, query));
+		List<FoundItem> result = collectionService.persist(entries);
 
 		assertThat(result).hasSize(2);
 		assertThat(foundItemRepository.count()).isEqualTo(2);
