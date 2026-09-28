@@ -4,11 +4,14 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.whereisit.backend.candidate.dto.CandidateResponse;
 import com.whereisit.backend.lostitem.entity.LostItem;
 import com.whereisit.backend.lostitem.entity.LostItemStatus;
 
 /**
- * API 명세 v2 05_응답필드 LostItem.
+ * API 명세 v2 05_응답필드 LostItem. currentCandidate는 API-07이 후보 상세(구 API-12·13) 흐름을
+ * 흡수하면서 추가한 필드로, 현재 결과 1위 후보(순위 ASC·null 마지막)의 상세를 담는다. 후보가 아직
+ * 없으면 null이다.
  */
 public record LostItemResponse(
 		String lostItemId,
@@ -22,14 +25,20 @@ public record LostItemResponse(
 		LocalDate lastAutoSearchDate,
 		int currentCandidateCount,
 		LocalDateTime createdAt,
-		LocalDateTime updatedAt) {
+		LocalDateTime updatedAt,
+		CandidateResponse currentCandidate) {
 
 	/** 후보가 아직 없는(방금 생성된) 분실물용. */
 	public static LostItemResponse from(LostItem lostItem, Clock clock) {
-		return from(lostItem, clock, 0);
+		return from(lostItem, clock, 0, null);
 	}
 
 	public static LostItemResponse from(LostItem lostItem, Clock clock, int currentCandidateCount) {
+		return from(lostItem, clock, currentCandidateCount, null);
+	}
+
+	public static LostItemResponse from(LostItem lostItem, Clock clock, int currentCandidateCount,
+			CandidateResponse currentCandidate) {
 		return new LostItemResponse(
 				String.valueOf(lostItem.getId()),
 				lostItem.getDescription(),
@@ -42,7 +51,8 @@ public record LostItemResponse(
 				lostItem.getLastAutoSearchDate(),
 				currentCandidateCount,
 				lostItem.getCreatedAt(),
-				lostItem.getUpdatedAt());
+				lostItem.getUpdatedAt(),
+				currentCandidate);
 	}
 
 	/** API-06 규칙 3: 만료시각이 지난 TRACKING도 응답에서는 EXPIRED로 보여준다(DB 값은 배치가 나중에 바꾼다). */

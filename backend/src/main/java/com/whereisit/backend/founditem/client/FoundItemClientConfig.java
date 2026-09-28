@@ -30,5 +30,14 @@ public class FoundItemClientConfig {
 				properties.getPortalNameStorageFoundItemUrl(), properties.getServiceKey(),
 				"CLR_CD", FoundItemSourceType.PORTAL);
 		return new PortalFoundItemNameStorageClient(delegate);
+	public FoundItemDetailClient policeFoundItemDetailClient(RestClient.Builder builder, FoundItemApiProperties properties) {
+		return new FoundItemDetailClient(builder,
+				properties.getPoliceFoundItemDetailUrl(), properties.getServiceKey(), FoundItemSourceType.POLICE);
+	}
+
+	@Bean
+	public FoundItemDetailClient portalFoundItemDetailClient(RestClient.Builder builder, FoundItemApiProperties properties) {
+		return new FoundItemDetailClient(builder,
+				properties.getPortalFoundItemDetailUrl(), properties.getServiceKey(), FoundItemSourceType.PORTAL);
 	}
 }

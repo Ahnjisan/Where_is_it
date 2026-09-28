@@ -14,6 +14,7 @@ spring:
     # 타임아웃(30초)으로 실패한다. 이런 코드가 있는 테스트는 testSqlite 대신 test(MySQL)로 확인한다.
     hikari:
       maximum-pool-size: 1
+      leak-detection-threshold: 5000
 
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect

@@ -106,4 +106,12 @@ public class FoundItem {
 		this.imageUrl = imageUrl;
 		this.lastFetchedAt = now;
 	}
+
+	/** 상세 API(fdPlace·tel·uniq) 응답을 반영한다. 상세는 최초 1회만 조회하고 이후에는 재호출하지 않는다. */
+	public void applyDetail(String foundPlace, String storagePhone, String description, LocalDateTime now) {
+		this.foundPlace = foundPlace;
+		this.storagePhone = storagePhone;
+		this.description = description;
+		this.detailFetchedAt = now;
+	}
 }

@@ -22,4 +22,11 @@ public class FoundItemApiProperties {
 	private String portalFoundItemUrl = "https://apis.data.go.kr/1320000/LosPtfundInfoInqireService/getPtLosfundInfoAccToClAreaPd";
 
 	private String portalNameStorageFoundItemUrl = "https://apis.data.go.kr/1320000/LosPtfundInfoInqireService/getPtLosfundInfoAccTpNmCstdyPlace";
+	/**
+	 * 상세(fdPlace·tel·uniq) 조회 URL(API-07이 사용). 목록과 같은 서비스의 상세 operation이며,
+	 * 값을 비워 두면 상세 호출은 항상 실패로 처리되고 NULL 정책이 적용된다.
+	 */
+	private String policeFoundItemDetailUrl = "https://apis.data.go.kr/1320000/LosfundInfoInqireService/getLosfundDetailInfo";
+
+	private String portalFoundItemDetailUrl = "https://apis.data.go.kr/1320000/LosPtfundInfoInqireService/getPtLosfundDetailInfo";
 }
