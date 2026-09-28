@@ -85,3 +85,18 @@ tasks.register('testSqlite', Test) {
 	useJUnitPlatform()
 	systemProperty 'spring.profiles.active', 'sqlite'
 }
+
+// Browser E2E 전용 Backend. test runtime classpath만 사용하므로 운영 artifact에는
+// SQLite와 결정적 외부 연동 Stub이 포함되지 않는다.
+tasks.register('e2eServer', JavaExec) {
+	group = 'verification'
+	description = 'Playwright E2E용 Spring Boot 서버를 SQLite와 결정적 Stub으로 실행합니다.'
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.whereisit.backend.e2e.E2eBackendApplication'
+	args '--spring.profiles.active=e2e', '--spring.config.location=classpath:/application-e2e.yml'
+	systemProperty 'spring.datasource.url', 'jdbc:sqlite::memory:'
+	systemProperty 'spring.datasource.driver-class-name', 'org.sqlite.JDBC'
+	systemProperty 'spring.datasource.username', ''
+	systemProperty 'spring.datasource.password', ''
+}
