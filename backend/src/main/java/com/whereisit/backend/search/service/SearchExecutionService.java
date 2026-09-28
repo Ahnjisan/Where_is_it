@@ -17,6 +17,7 @@ import com.whereisit.backend.candidate.ranking.CandidateRankingInput;
 import com.whereisit.backend.candidate.ranking.CandidateRankingRequest;
 import com.whereisit.backend.candidate.ranking.CandidateRankingResult;
 import com.whereisit.backend.candidate.ranking.SimpleTextSimilarityRanker;
+import com.whereisit.backend.candidate.ranking.initial.InitialSearchCandidateRanker;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupException;
 import com.whereisit.backend.founditem.client.FoundItemSearchQuery;
@@ -52,10 +53,14 @@ public class SearchExecutionService {
 	private final FoundItemCollectionService foundItemCollectionService;
 	private final CandidateRanker candidateRanker;
 	private final SimpleTextSimilarityRanker simpleRanker;
+	private final CandidatePreselector candidatePreselector;
+	private final InitialSearchCandidateRanker initialSearchCandidateRanker;
 	private final Clock clock;
 
 	/**
 	 * API-05 initial search. Only portal operation 2 is queried and no LostItemCandidate relationship is stored.
+	 * Issue #80: API-05 alone uses the deterministic top-20 preselection and the score-based ranker whose failures
+	 * always fall back to rule-based results. Legacy {@link #execute} keeps its 100-candidate ranker path unchanged.
 	 */
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public SearchExecutionResponse executeInitial(Long memberId, Long lostItemId) {
@@ -77,10 +82,11 @@ public class SearchExecutionService {
 			throw new BusinessException(SearchErrorCode.LOST_API_UNAVAILABLE);
 		}
 
-		CandidateSelection selection = selectCandidates(snapshot.description(), portalEntries);
+		CandidateSelection selection = toInitialSelection(candidatePreselector.select(
+				snapshot.description(), portalEntries, CandidatePreselector.AI_EVALUATION_LIMIT));
 		CandidateRankingResult rankingResult = selection.entriesByKey().isEmpty()
 				? CandidateRankingResult.notRun()
-				: candidateRanker.rank(new CandidateRankingRequest(
+				: initialSearchCandidateRanker.rank(new CandidateRankingRequest(
 						snapshot.description(), snapshot.languageCode(), snapshot.lostDateFrom(), snapshot.lostDateTo(),
 						snapshot.lostPlaceText(), selection.rankingInputs()));
 		if (selection.limited()) {
@@ -165,6 +171,18 @@ public class SearchExecutionService {
 			inputs.add(toRankingInput(key, entry));
 		}
 		return new CandidateSelection(entriesByKey, inputs, limited);
+	}
+
+	private CandidateSelection toInitialSelection(CandidatePreselector.Preselection preselection) {
+		Map<String, FoundItemListEntry> entriesByKey = new LinkedHashMap<>();
+		List<CandidateRankingInput> inputs = new ArrayList<>();
+		for (int i = 0; i < preselection.entries().size(); i++) {
+			String key = "c" + (i + 1);
+			FoundItemListEntry entry = preselection.entries().get(i);
+			entriesByKey.put(key, entry);
+			inputs.add(toRankingInput(key, entry));
+		}
+		return new CandidateSelection(entriesByKey, inputs, preselection.limited());
 	}
 
 	private CandidateRankingInput toRankingInput(String key, FoundItemListEntry entry) {
