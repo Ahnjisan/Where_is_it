@@ -60,7 +60,6 @@ export default function MyPageView({ onNavigate, lang = "ko", onChangeLang, show
             <Shield className="w-4 h-4 text-gray-400" />
             <span>개인정보 및 이용약관</span>
           </div>
-          <span className="text-gray-400 text-xs">보기</span>
         </div>
       </div>
     </div>
