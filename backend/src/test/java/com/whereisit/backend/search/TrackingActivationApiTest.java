@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -66,7 +67,8 @@ class TrackingActivationApiTest extends ApiTestSupport {
 		when(policeClient.search(any())).thenReturn(List.of());
 		when(portalClient.search(any())).thenReturn(List.of());
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(
-				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
+				new AiSearchConditionExtractionResult(null, null, null, "지갑", null, "검색 조건을 확인했습니다."));
+		when(portalClient.searchAllByFoundDate(any(), any())).thenReturn(List.of());
 		when(candidateRanker.rank(any())).thenAnswer(invocation -> successfulRanking(invocation.getArgument(0)));
 	}
 
@@ -74,7 +76,7 @@ class TrackingActivationApiTest extends ApiTestSupport {
 	@DisplayName("TC-16 완전조회 가능하면 TRACKING이 되고 기준 후보가 저장되며 만료는 시작+168시간이다")
 	void activatesTrackingWithBaselineCandidates() throws Exception {
 		mockSources(List.of(new FoundItemListEntry(
-				FoundItemSourceType.POLICE, "1", "1", "지갑", null, null, null, null, null, null)));
+				FoundItemSourceType.PORTAL, "1", "1", "지갑", null, null, null, LocalDate.of(2026, 9, 10), null, null)));
 		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
 		String lostItemId = createLostItemWithSearchStartDate(accessToken, "지갑을 잃어버렸어요");
 
@@ -109,8 +111,10 @@ class TrackingActivationApiTest extends ApiTestSupport {
 	}
 
 	@Test
-	@DisplayName("습득물_조회_시작일이 없으면 400 INVALID_SEARCH_CONDITION")
-	void requiresSearchStartDate() throws Exception {
+	@DisplayName("API-05에서 물품명 검색어가 구조화되지 않았으면 400 INVALID_SEARCH_CONDITION")
+	void requiresProductNameKeyword() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(
+				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
 		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
 		JsonNode created = objectMapper.readTree(
 				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", "지갑을 잃어버렸어요"))
@@ -122,16 +126,14 @@ class TrackingActivationApiTest extends ApiTestSupport {
 	}
 
 	@Test
-	@DisplayName("두 출처가 모두 실패해 기준 후보를 확정할 수 없으면 활성화하지 않고 오류를 응답한다")
+	@DisplayName("포털기관 조회가 실패해 기준 후보를 확정할 수 없으면 활성화하지 않고 오류를 응답한다")
 	void unavailableBaselineIsRejected() throws Exception {
 		mockSources(List.of());
 		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
 		String lostItemId = createLostItemWithSearchStartDate(accessToken, "지갑을 잃어버렸어요");
 
-		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
-		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
-		when(policeClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.POLICE, "99", "TIMEOUT"));
-		when(portalClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.PORTAL, "99", "TIMEOUT"));
+		when(portalClient.searchAllByFoundDate(any(), any()))
+				.thenThrow(new FoundItemLookupException(FoundItemSourceType.PORTAL, "99", "TIMEOUT"));
 
 		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
 				.andExpect(status().isBadGateway())
@@ -141,11 +143,9 @@ class TrackingActivationApiTest extends ApiTestSupport {
 				.andExpect(jsonPath("$.data.status").value("SEARCHING"));
 	}
 
-	private void mockSources(List<FoundItemListEntry> policeResults) {
-		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+	private void mockSources(List<FoundItemListEntry> portalResults) {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
-		when(policeClient.search(any())).thenReturn(policeResults);
-		when(portalClient.search(any())).thenReturn(List.of());
+		when(portalClient.searchAllByFoundDate(any(), any())).thenReturn(portalResults);
 	}
 
 	private String createLostItemWithSearchStartDate(String accessToken, String description) throws Exception {
