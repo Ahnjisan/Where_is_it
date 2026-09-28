@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.whereisit.backend.auth.error.AuthErrorCode;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
  * 컨트롤러 밖(Security 방화벽의 URL 거부, 필터에서 난 예외, 컨테이너 오류)에서 난 오류는
  * {@link GlobalExceptionHandler}까지 가지 않고 여기로 온다. 컨트롤러 안의 오류는 계속 GlobalExceptionHandler가 처리한다.
  * 여기서는 원래 상태 코드만 보고 공통 코드로 바꾼다. 상태 코드가 잘못된 오류는 발생한 곳에서 고친다.
+ * API가 아니라서 문서(Swagger)에는 싣지 않는다.
  */
+@Hidden
 @Slf4j
 @RestController
 public class ApiErrorController implements ErrorController {

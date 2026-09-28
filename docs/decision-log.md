@@ -42,6 +42,7 @@
 | AI 구조화 출력 범위 | `lostDateFrom`, `lostDateTo`, `lostPlaceText`, `assistantMessage`만 허용. 공통코드·내부 ID·상태·추적·이메일 필드는 생성하거나 변경하지 않음 |
 | AI 검색 트랜잭션 | TEXT USER 메시지를 먼저 commit하고 OpenAI 및 습득물 외부 호출은 DB 트랜잭션 밖에서 실행. 성공 결과와 후보만 별도 짧은 트랜잭션으로 저장 |
 | 후보 랭킹 AI | Issue #56에서는 기존 `CandidateRanker`를 유지하며 OpenAI 후보 순위·추천 이유 생성은 Issue #57로 분리 |
+| API 문서화 | springdoc-openapi 2.8.x(Spring Boot 3.5 호환)로 Swagger UI(`/swagger-ui.html`)와 OpenAPI JSON(`/v3/api-docs`)을 제공. 문서 경로는 인증 없이 조회 가능하며, 운영 환경 노출 여부는 배포 환경 결정 시 정함 |
 
 ## 미결정 항목
 
@@ -69,3 +70,4 @@
 | 2026-09-26 | 인증 방식 | Spring Security + JWT(HS256) 인증 확정. AT 30분·RT 14일, RT는 JWT로 기기별 발급하고 SHA-256 해시만 저장, 서명 키는 `JWT_SECRET` | Issue #28 | 반정욱(PR #45 머지) |
 | 2026-09-26 | 습득물 외부 API 실호출 검증 | 일반·포털 습득물 목록·상세 API 실제 호출 성공. 목록 `depPlace` → `storage_place`, 상세 `fdPlace` → `found_place`, `tel` → `storage_phone`, `uniq` → `description` 매핑을 확정. 실제 응답은 `application/xml`, 정상 XML Namespace 없음, 목록·상세 모두 `body/items/item`. NULL 정책은 기존대로 유지. 경찰민원24 개편은 2026-09-26 실제 호출 기준 일반·포털 목록·상세 연동 영향이 확인되지 않음. 공통코드 API는 승인대기로 별도 검증이 필요하며, 일반 정상 빈 결과와 별도 오류 봉투 세부 구조는 미확정 | Issue #41 | 안지산 |
 | 2026-09-27 | OpenAI 자연어 검색조건 구조화 | OpenAI Responses API, `store=false`, 환경변수 model, strict Structured Outputs를 확정. TEXT USER 메시지는 외부 호출 전에 저장하고 OpenAI·습득물 HTTP 호출은 DB 트랜잭션 밖에서 수행. 출력은 날짜·장소·ASSISTANT 메시지로 제한하고 후보 랭킹은 Issue #57로 분리 | Issue #56 | 안지산 |
+| 2026-09-28 | API 문서화 | springdoc-openapi 2.8.17로 Swagger UI·OpenAPI JSON 제공. 문서 경로(`/swagger-ui/**`, `/v3/api-docs/**`)는 GET만 인증 없이 허용 | Issue #62 | PR 승인 후 기재 |
