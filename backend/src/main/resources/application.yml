@@ -43,6 +43,20 @@ spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+  # 신규 후보 이메일 알림(Issue #37). host를 항상 값이 있게 둬야 JavaMailSender 빈이 만들어진다.
+  # 실제 SMTP 계정이 없으면 발송은 실패하고 이메일_알림.발송_상태가 FAILED로 남을 뿐, 애플리케이션은 정상 시작한다.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 app:
   jwt:
     # HS256 서명 키. .env 또는 OS 환경변수 JWT_SECRET으로 주입한다(만드는 법: backend/.env.example).
