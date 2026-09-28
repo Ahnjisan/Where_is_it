@@ -186,7 +186,7 @@ public class LostItem extends BaseTimeEntity {
 	}
 
 	/**
-	 * API-14 7일 추적 활성화(Issue #36에서 사용). SEARCHING에서만 부르며, 시작 시각+7일을 만료로 고정한다.
+	 * API-17 7일 추적 활성화(Issue #36에서 사용). SEARCHING에서만 부르며, 시작 시각+7일을 만료로 고정한다.
 	 */
 	public void activateTracking(LocalDateTime startedAt, String notificationEmail) {
 		this.status = LostItemStatus.TRACKING;

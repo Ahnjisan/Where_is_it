@@ -23,6 +23,7 @@ import com.whereisit.backend.lostitem.service.InitialSearchOrchestrator;
 import com.whereisit.backend.lostitem.service.LostItemService;
 import com.whereisit.backend.search.dto.SearchExecutionResponse;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -88,6 +89,7 @@ public class LostItemController {
 		return ApiResponse.ok(lostItemService.getDetail(memberId, lostItemId));
 	}
 
+	@Hidden
 	@Operation(summary = "API-08 분실물 수정", description = """
 			보낸 필드만 바꾼다. 단, conditions를 보내면 그 안의 8개 필드를 통째로 바꾸므로 빠진 필드는 null이 된다.
 			notificationEmail은 TRACKING 상태에서만 바꿀 수 있다. EXPIRED 건은 수정할 수 없다.""")
@@ -106,6 +108,7 @@ public class LostItemController {
 		return ApiResponse.ok(lostItemService.update(memberId, lostItemId, request));
 	}
 
+	@Hidden
 	@Operation(summary = "API-09 분실물 삭제", description = "논리 삭제한다. 이미 삭제한 건에 다시 호출해도 204다.")
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "삭제됨(본문 없음)"),

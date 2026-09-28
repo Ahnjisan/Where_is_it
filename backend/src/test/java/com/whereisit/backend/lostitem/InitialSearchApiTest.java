@@ -81,7 +81,7 @@ class InitialSearchApiTest extends ApiTestSupport {
 	@MockitoBean
 	private InitialSearchCandidateRanker candidateRanker;
 
-	/** Legacy API-11·14 랭커. API-05는 이 Bean을 호출하지 않아야 한다. */
+	/** Legacy API-11 랭커. API-05는 이 Bean을 호출하지 않아야 한다. */
 	@MockitoBean
 	private OpenAiCandidateRanker legacyCandidateRanker;
 

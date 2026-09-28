@@ -21,7 +21,7 @@ import com.whereisit.backend.tracking.TrackingSearchWindow;
 import lombok.RequiredArgsConstructor;
 
 /**
- * API-14 7일 추적 활성화 오케스트레이터. 일일 재검색과 같은 방식(포털기관 목록 1번 API를 습득일 범위로 조회한 뒤
+ * API-17 7일 추적 활성화 오케스트레이터. 일일 재검색과 같은 방식(포털기관 목록 1번 API를 습득일 범위로 조회한 뒤
  * 저장된 검색어로 매칭)으로 기준 후보를 정한다. DB 접근은 모두 {@link TrackingActivationPersistenceService}의
  * 짧은 트랜잭션에서 하고, 포털기관 조회 중에는 DB 트랜잭션·커넥션을 붙잡지 않는다.
  */

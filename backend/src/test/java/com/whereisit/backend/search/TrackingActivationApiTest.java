@@ -37,7 +37,7 @@ import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
 
-@DisplayName("API-14 7일 추적 활성화")
+@DisplayName("API-17 7일 추적 활성화")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Sql(scripts = "/sql/cleanup-search-test-data.sql",
 		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),

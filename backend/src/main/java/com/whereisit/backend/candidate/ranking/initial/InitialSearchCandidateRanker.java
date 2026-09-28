@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
  * API-05 전용 OpenAI Responses API 후보 평가기. AI는 후보별 score·isSimilar·reason만 만들고 최종 rank는 서버가 결정적으로
  * 산출한다. 후보 평가는 후보 조회 뒤의 보조 단계이므로 timeout·429를 포함한 모든 실패를 API-05 전체 실패로 전파하지 않고
  * 같은 후보 집합의 규칙 기반 결과로 대체한다. 자동 재시도와 자동 모델 fallback은 하지 않는다.
- * Legacy API-11·14가 쓰는 {@code CandidateRanker}(OpenAiCandidateRanker)를 구현하지 않아 그 흐름에 주입되지 않는다.
+ * Legacy API-11이 쓰는 {@code CandidateRanker}(OpenAiCandidateRanker)를 구현하지 않아 그 흐름에 주입되지 않는다.
  */
 @Slf4j
 @Component
