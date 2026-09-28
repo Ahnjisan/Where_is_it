@@ -87,7 +87,7 @@ public class SearchExecutionService {
 				ChatMessage.of(lostItem, ChatRole.ASSISTANT, buildAssistantMessageContent(complete, candidateResponses.size())));
 
 		return new SearchExecutionResponse(
-				LostItemResponse.from(lostItem, clock),
+				LostItemResponse.from(lostItem, clock, (int) candidateRepository.countByLostItemIdAndCurrentTrue(lostItem.getId())),
 				ChatMessageResponse.from(assistantMessage),
 				complete ? "COMPLETE" : "PARTIAL",
 				warnings,

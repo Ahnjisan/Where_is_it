@@ -43,7 +43,7 @@ public class TrackingActivationService {
 
 		// TRACKING 반복 호출은 기존 정보 그대로 200(API-14 규칙 4).
 		if (lostItem.getStatus() == LostItemStatus.TRACKING) {
-			return LostItemResponse.from(lostItem, clock);
+			return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItemId));
 		}
 		lostItemService.ensureNotExpired(lostItem);
 		if (lostItem.getSearchStartDate() == null) {
@@ -63,7 +63,11 @@ public class TrackingActivationService {
 		}
 
 		lostItem.activateTracking(LocalDateTime.now(clock), notificationEmail);
-		return LostItemResponse.from(lostItem, clock);
+		return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItemId));
+	}
+
+	private int currentCandidateCount(Long lostItemId) {
+		return (int) candidateRepository.countByLostItemIdAndCurrentTrue(lostItemId);
 	}
 
 	private String memberEmail(Long memberId) {

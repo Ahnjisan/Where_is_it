@@ -9,7 +9,6 @@ import com.whereisit.backend.lostitem.entity.LostItemStatus;
 
 /**
  * API 명세 v2 05_응답필드 LostItem.
- * currentCandidateCount는 분실물_후보 테이블이 생기는 Issue #36 전까지 항상 0이다.
  */
 public record LostItemResponse(
 		String lostItemId,
@@ -25,7 +24,12 @@ public record LostItemResponse(
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt) {
 
+	/** 후보가 아직 없는(방금 생성된) 분실물용. */
 	public static LostItemResponse from(LostItem lostItem, Clock clock) {
+		return from(lostItem, clock, 0);
+	}
+
+	public static LostItemResponse from(LostItem lostItem, Clock clock, int currentCandidateCount) {
 		return new LostItemResponse(
 				String.valueOf(lostItem.getId()),
 				lostItem.getDescription(),
@@ -36,7 +40,7 @@ public record LostItemResponse(
 				lostItem.getStartedAt(),
 				lostItem.getExpiresAt(),
 				lostItem.getLastAutoSearchDate(),
-				0,
+				currentCandidateCount,
 				lostItem.getCreatedAt(),
 				lostItem.getUpdatedAt());
 	}

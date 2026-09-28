@@ -19,6 +19,8 @@ public interface LostItemCandidateRepository extends JpaRepository<LostItemCandi
 
 	List<LostItemCandidate> findByLostItemIdAndCurrentTrue(Long lostItemId);
 
+	long countByLostItemIdAndCurrentTrue(Long lostItemId);
+
 	/** scope=CURRENT. API-12 규칙 3: 순위 ASC(null 마지막), 후보ID ASC. */
 	@Query("select c from LostItemCandidate c where c.lostItem.id = :lostItemId and c.current = true "
 			+ "order by case when c.rankNo is null then 1 else 0 end, c.rankNo asc, c.id asc")

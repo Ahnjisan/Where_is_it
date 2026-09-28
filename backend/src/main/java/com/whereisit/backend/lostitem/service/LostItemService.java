@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
 import com.whereisit.backend.global.error.BusinessException;
 import com.whereisit.backend.global.error.CommonErrorCode;
 import com.whereisit.backend.lostitem.dto.CreateLostItemRequest;
@@ -39,6 +40,7 @@ public class LostItemService {
 	private final LostItemRepository lostItemRepository;
 	private final ChatMessageRepository chatMessageRepository;
 	private final MemberRepository memberRepository;
+	private final LostItemCandidateRepository candidateRepository;
 	private final Clock clock;
 
 	/** API-05. SEARCHING 건과 첫 USER 메시지만 저장하고, 실제 검색은 실행하지 않는다. */
@@ -63,13 +65,14 @@ public class LostItemService {
 		Page<LostItem> page = status == null
 				? lostItemRepository.findByMemberIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(memberId, pageable)
 				: lostItemRepository.findByMemberIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDescIdDesc(memberId, status, pageable);
-		return LostItemPageResponse.from(page, clock);
+		return LostItemPageResponse.from(page, clock, id -> (int) candidateRepository.countByLostItemIdAndCurrentTrue(id));
 	}
 
 	/** API-07. */
 	@Transactional(readOnly = true)
 	public LostItemResponse getDetail(Long memberId, Long lostItemId) {
-		return LostItemResponse.from(findOwned(memberId, lostItemId), clock);
+		LostItem lostItem = findOwned(memberId, lostItemId);
+		return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItem.getId()));
 	}
 
 	/** API-08. 전송된 필드만 바꾸고 EXPIRED 건은 거부한다. */
@@ -97,7 +100,7 @@ public class LostItemService {
 			lostItem.updateNotificationEmail(request.notificationEmail());
 		}
 
-		return LostItemResponse.from(lostItem, clock);
+		return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItem.getId()));
 	}
 
 	/** API-09. 논리 삭제이며, 이미 삭제된 건에 다시 호출해도 204(멱등)다. */
@@ -108,6 +111,10 @@ public class LostItemService {
 		if (!lostItem.isDeleted()) {
 			lostItem.delete(LocalDateTime.now(clock));
 		}
+	}
+
+	public int currentCandidateCount(Long lostItemId) {
+		return (int) candidateRepository.countByLostItemIdAndCurrentTrue(lostItemId);
 	}
 
 	public LostItem findOwned(Long memberId, Long lostItemId) {
