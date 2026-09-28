@@ -15,25 +15,6 @@ export default function AppShell({ children }) {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!isMounted) return;
-
-    const isAuthPage = pathname === "/signup" || pathname === "/signin" || pathname === "/login";
-    const isRoot = pathname === "/";
-
-    if (!user) {
-      // 비회원인 경우: 루트(/)와 인증 페이지를 제외하고 모두 로그인으로 리다이렉트
-      if (!isRoot && !isAuthPage) {
-        router.replace("/signin");
-      }
-    } else {
-      // 회원인 경우: 인증 페이지 접속 시 루트(/)로 리다이렉트
-      if (isAuthPage) {
-        router.replace("/");
-      }
-    }
-  }, [user, pathname, router, isMounted]);
-
   // 하단 네비게이션 바를 숨길 경로 (로그인, 회원가입 화면)
   const hideBottomNav =
     pathname === "/signup" ||

@@ -30,6 +30,9 @@ export function AppProvider({ children }) {
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem("where_user", JSON.stringify(updated));
+          if (updated.accessToken) {
+            document.cookie = `where_access_token=${updated.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
+          }
         } catch (e) {
           // ignore
         }
@@ -51,6 +54,7 @@ export function AppProvider({ children }) {
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem("where_user");
+        document.cookie = "where_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       } catch (e) {
         // ignore
       }
