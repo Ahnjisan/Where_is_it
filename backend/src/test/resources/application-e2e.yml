@@ -1,0 +1,41 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+
+spring:
+  application:
+    name: where-is-it-e2e-backend
+  datasource:
+    url: "jdbc:sqlite::memory:"
+    username:
+    password:
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 50
+        one-indexed-parameters: false
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+app:
+  jwt:
+    # Base64 "where-is-it-test-only-jwt-secret". E2E 프로세스에서만 쓰는 공개 dummy 값이다.
+    secret: d2hlcmUtaXMtaXQtdGVzdC1vbmx5LWp3dC1zZWNyZXQ=
+    access-token-ttl: 30m
+    refresh-token-ttl: 14d
+
+springdoc:
+  default-produces-media-type: application/json
+
+logging:
+  level:
+    org.hibernate.SQL: warn

@@ -309,3 +309,26 @@ API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-
 | `MAIL_PASSWORD` | 발송 시 필수 | SMTP 비밀번호. Gmail은 앱 비밀번호를 사용합니다. 코드·로그·문서에 기록하지 않습니다. |
 
 값이 없어도 애플리케이션은 시작하며 발송만 `FAILED`로 기록됩니다. SMTP 연결·읽기·쓰기 제한시간은 각 10초입니다. 테스트는 실제 SMTP를 호출하지 않고 `EmailSender`를 Mock으로 대체합니다.
+
+## 10. 핵심 검색 Browser E2E
+
+Issue #89의 E2E는 실제 Chromium과 Next.js, Spring Security·Controller·Service·Repository를 연결하되 Backend는 프로세스 전용 인메모리 SQLite를 사용합니다. OpenAI 조건 추출, 포털기관 조회, 후보 평가는 `src/test`의 결정적 Stub으로 교체하고 SMTP와 Scheduling도 실행하지 않습니다. 따라서 실제 OpenAI·공공데이터 Key, DB 계정, 메일 계정 및 `.env`가 필요하지 않으며 외부 API를 호출하지 않습니다.
+
+로컬에서는 세 터미널에서 Backend, Frontend, Playwright 순서로 실행합니다.
+
+```powershell
+cd backend
+.\gradlew.bat e2eServer
+```
+
+```powershell
+cd frontend
+npm run dev -- --hostname 127.0.0.1
+```
+
+```powershell
+cd frontend
+npm run test:e2e -- e2e/core-search.e2e.js --project=chromium
+```
+
+CI는 같은 테스트 전용 Backend를 8080, 빌드된 Frontend를 3000에서 시작하고 readiness 확인 후 Chromium 한 worker로 E2E를 실행합니다. trace와 video는 저장하지 않으며 실패 screenshot만 `frontend/test-results`에서 Artifact로 보존합니다. E2E Backend 종료 시 인메모리 SQLite의 회원·검색·후보 원본 캐시도 함께 폐기됩니다.

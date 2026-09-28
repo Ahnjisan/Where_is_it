@@ -12,7 +12,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -27,6 +28,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@eslint/eslintrc": "^3.3.7",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
