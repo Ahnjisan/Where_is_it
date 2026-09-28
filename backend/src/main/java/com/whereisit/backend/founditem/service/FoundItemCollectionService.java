@@ -1,6 +1,7 @@
 package com.whereisit.backend.founditem.service;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,16 @@ public class FoundItemCollectionService {
 	@Transactional(propagation = Propagation.NEVER)
 	public List<FoundItemListEntry> lookupPortalByNameAndStorage(PortalFoundItemSearchQuery query) {
 		return portalNameStorageClient.search(query);
+	}
+
+	/** 추적 재검색용. 포털기관 목록 1번 API를 코드 없이 습득일 범위로 전량 조회한다. HTTP 호출 동안 트랜잭션이 없다. */
+	@Transactional(propagation = Propagation.NEVER)
+	public List<FoundItemListEntry> lookupPortalByFoundDate(LocalDate startDate, LocalDate endDate) {
+		FoundItemLookupClient client = lookupClients.stream()
+				.filter(candidate -> candidate.sourceType() == FoundItemSourceType.PORTAL)
+				.findFirst()
+				.orElseThrow(() -> new NoSuchElementException("No lookup client for " + FoundItemSourceType.PORTAL));
+		return client.searchAllByFoundDate(startDate, endDate);
 	}
 
 	/** 이미 조회한 응답을 호출자의 짧은 저장 트랜잭션에 참여해 upsert한다. */

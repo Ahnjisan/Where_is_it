@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.whereisit.backend.founditem.entity.FoundItem;
 import com.whereisit.backend.lostitem.entity.LostItem;
+import com.whereisit.backend.notification.entity.EmailNotification;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +22,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * 분실물_후보. 테이블 명세 v2 10_분실물후보(lost_item_candidates).
- * 알림_번호(notification_id)는 이메일_알림 테이블이 생기는 Issue #37에서 추가한다.
  */
 @Getter
 @Entity
@@ -58,6 +58,11 @@ public class LostItemCandidate {
 	@Column(name = "is_baseline", nullable = false)
 	private boolean baseline;
 
+	/** 이 후보를 알린 메일 묶음. 알림에 포함되지 않은 후보는 null이다. */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "notification_id")
+	private EmailNotification notification;
+
 	@Column(name = "first_seen_at", nullable = false, updatable = false)
 	private LocalDateTime firstSeenAt;
 
@@ -93,5 +98,16 @@ public class LostItemCandidate {
 
 	public void markAsBaseline() {
 		this.baseline = true;
+	}
+
+	/** 추적 재검색 결과에 포함됐을 때 부른다. 추적 매칭은 순위·추천 이유를 만들지 않으므로 그 값은 건드리지 않는다. */
+	public void markSeenByTracking(LocalDateTime now) {
+		this.current = true;
+		this.lastSeenAt = now;
+	}
+
+	/** 이 후보를 오늘 보낸 메일 묶음에 연결한다. */
+	public void linkNotification(EmailNotification notification) {
+		this.notification = notification;
 	}
 }

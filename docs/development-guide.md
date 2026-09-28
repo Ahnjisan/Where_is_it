@@ -279,4 +279,33 @@ API-05 내부 후보 평가도 Responses API, `store=false`, strict JSON Schema�
 
 API-05 응답은 `lookupStatus`, `rankingStatus`, `persisted`, `warnings`, `candidates`를 최상위에 두는 평면 계약을 유지합니다. `candidates`는 현재 Frontend 호환용 이름일 뿐 Candidate DB 저장을 뜻하지 않으며 `candidateId=null`, `isCurrent=false`, `isBaseline=false`, `persisted=false`입니다. `foundItem.openId`는 포털기관 `atcId`와 같고 `fdSn`은 문자열 원형을 보존합니다. 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지되어 새로고침 시 만료되며, 재검색하면 새 `lostItemId`가 생성될 수 있습니다. 결과 재조회 API와 Snapshot·중복 알림 정책은 후속 작업입니다.
 
-API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, API-16·17, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다. Issue #37 알림·Batch 코드가 main에 통합되면 CandidateResponse, LostItemCandidate, 후보 Repository 및 Notification 연동을 다시 검증합니다.
+API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, API-16·17, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다.
+
+## 9. 추적 재검색과 이메일 알림
+
+추적 활성화(API-14)와 매일 09:00(KST)에 실행되는 추적 배치는 같은 방식으로 후보를 찾습니다.
+
+1. 포털기관 목록 1번 API(`getPtLosfundInfoAccToClAreaPd`)를 분류·색상·지역 코드 없이 `START_YMD`~`END_YMD`(습득일)만으로 호출하고, `numOfRows=5000`으로 모든 페이지를 받습니다.
+2. `lost_items`에 저장된 물품명 검색어가 물품명(`fdPrdtNm`) 또는 분류명(`prdtClNm`)에 포함되고, 보관장소 검색어가 있으면 보관장소(`depPlace`)에 포함되며, 습득일이 `search_start_date` 이후인 습득물을 고릅니다. 대소문자와 공백 차이는 무시합니다.
+3. 조회 시작일은 `search_start_date`이며 최대 30일 전으로 제한합니다. 습득 후 늦게 등록되는 습득물이 있어 매번 시작일부터 오늘까지 전체를 다시 조회합니다.
+
+| 구분 | 동작 |
+| --- | --- |
+| 추적 활성화 | 물품명 검색어가 없으면 `INVALID_SEARCH_CONDITION`. `search_start_date`가 없으면 `lost_date_from`, 그것도 없으면 검색 건 생성일로 채웁니다. 매칭 결과를 기준 후보(`is_baseline=1`)로 저장하고 당일을 `last_auto_search_date`로 기록합니다. 포털기관 조회 실패는 `LOST_API_UNAVAILABLE`입니다. |
+| 일일 배치 | 만료 시각이 지난 TRACKING 건은 검색 없이 EXPIRED로 바꿉니다. 오늘 재검색하지 않은 TRACKING 건 전체에 대해 포털기관 조회는 한 번만 하고, 건마다 짧은 트랜잭션으로 후보를 반영합니다. 조회가 실패하면 `last_auto_search_date`를 갱신하지 않습니다. |
+| 새 후보 | 이 분실물에 처음 나타난 습득물입니다. 새 후보가 있으면 `(lost_item_id, notification_date)`당 이메일_알림 1건을 만들고 분실물의 사용 언어로 발송합니다. |
+| 발송 결과 | 성공은 `SENT`, 실패는 `FAILED`와 오류 코드(예외 클래스 이름)로 기록합니다. `SENT`는 메일 제공자 접수를 뜻하며 수신·열람을 보장하지 않습니다. |
+| 알림 이력 | API-15 `GET /api/lost-items/{lostItemId}/notifications`로 조회합니다. |
+
+포털기관 조회와 메일 발송은 DB 트랜잭션 밖에서 실행합니다.
+
+### 메일 발송 설정
+
+| 환경변수 | 필수 여부 | 설명 |
+| --- | --- | --- |
+| `MAIL_HOST` | 발송 시 필수 | SMTP 서버 주소. 기본값은 `localhost`입니다. |
+| `MAIL_PORT` | 선택 | 기본값은 `587`(STARTTLS)입니다. |
+| `MAIL_USERNAME` | 발송 시 필수 | SMTP 계정. |
+| `MAIL_PASSWORD` | 발송 시 필수 | SMTP 비밀번호. Gmail은 앱 비밀번호를 사용합니다. 코드·로그·문서에 기록하지 않습니다. |
+
+값이 없어도 애플리케이션은 시작하며 발송만 `FAILED`로 기록됩니다. SMTP 연결·읽기·쓰기 제한시간은 각 10초입니다. 테스트는 실제 SMTP를 호출하지 않고 `EmailSender`를 Mock으로 대체합니다.

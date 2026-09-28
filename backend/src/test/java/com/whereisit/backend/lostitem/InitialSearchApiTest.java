@@ -161,6 +161,10 @@ class InitialSearchApiTest extends ApiTestSupport {
 				.containsExactly(ChatRole.USER, ChatRole.ASSISTANT);
 		assertThat(candidateRepository.count()).isZero();
 		assertThat(foundItemRepository.count()).isEqualTo(2);
+		assertThat(lostItemRepository.findAll()).singleElement().satisfies(lostItem -> {
+			assertThat(lostItem.getProductNameKeyword()).isEqualTo("지갑");
+			assertThat(lostItem.getStoragePlaceKeyword()).isEqualTo("서울역 유실물센터");
+		});
 		verify(policeClient, never()).search(any());
 		verify(legacyPortalClient, never()).search(any());
 		verify(legacyCandidateRanker, never()).rank(any());

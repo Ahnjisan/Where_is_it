@@ -46,7 +46,12 @@
 | 후보 랭킹 트랜잭션 | 포털기관 조회, 규칙 기반 사전 축약, OpenAI 후보 랭킹은 DB 트랜잭션 밖에서 실행. 마지막 짧은 트랜잭션에서 분실물 row를 PESSIMISTIC_WRITE로 잠그고 Snapshot을 재검증한 뒤 응답용 FoundItem 원본 캐시만 upsert |
 | API-05 결과 수명 | 검색 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지. `candidates`는 현재 Frontend 호환용 JSON 이름이며 Candidate DB 저장을 의미하지 않고 `candidateId=null`, `persisted=false`를 반환. 새로고침·직접 URL 접근·과거 결과 재조회와 결과 Snapshot 정책은 후속 작업 |
 | 후보 랭킹 테스트 | 실제 OpenAI·경찰·포털 네트워크 없이 Mock/Fake로 정상·fallback·Schema/후보 변조·Transaction 경계를 검증 |
-| Issue #37 통합 경계 | 현재 main에는 Issue #37 알림·Batch 구현이 없다. 향후 main 통합 시 `CandidateResponse`, `LostItemCandidate`, 후보 Repository와 Notification 연동을 재검증한다 |
+| 추적 검색어 저장 | API-05에서 AI가 구조화한 `productNameKeyword`·`storagePlaceKeyword`를 `lost_items.product_name_keyword`·`storage_place_keyword`(VARCHAR(200), NULL 허용)에 저장. AI가 검색어를 돌려주지 않은 후속 대화에서는 기존 검색어를 유지 |
+| 추적 재검색 조회 | 추적 활성화(API-14)의 기준 후보와 일일 재검색은 포털기관 목록 1번 API를 분류·색상·지역 코드 없이 습득일 범위(`START_YMD`~`END_YMD`)로 전량 조회한 뒤, 저장된 검색어로 서버에서 매칭. 물품명 검색어는 물품명·분류명 부분 일치, 보관장소 검색어는 보관장소 부분 일치(대소문자·공백 무시), 습득일은 `search_start_date` 이후. 조회 시작일은 최대 30일 전으로 제한 |
+| 추적 활성화 조건 | 물품명 검색어가 없으면 `INVALID_SEARCH_CONDITION`. `search_start_date`가 비어 있으면 `lost_date_from`, 그것도 없으면 검색 건 생성일로 채움. 기준 후보는 `is_baseline=1`로 저장하고 활성화 당일을 `last_auto_search_date`로 기록 |
+| 추적 일일 배치 | 매일 09:00(KST) 1회 실행. 만료 시각이 지난 TRACKING 건은 검색 없이 EXPIRED로 전환. 오늘 재검색하지 않은 TRACKING 건 전체에 대해 포털기관 조회는 한 번만 하고 건마다 짧은 트랜잭션으로 반영. 조회 실패 시 `last_auto_search_date`를 갱신하지 않음 |
+| 새 후보 알림 | 이 분실물에 처음 나타난 습득물을 새 후보로 보고 전부 알림 대상에 포함. `(lost_item_id, notification_date)`당 이메일_알림 1건을 만들고 발송 결과를 SENT·FAILED와 시도 횟수·오류 코드로 기록. 메일 발송은 DB 트랜잭션 밖에서 실행 |
+| 알림 이력 조회 | API-15 `GET /api/lost-items/{lostItemId}/notifications`로 본인 분실물의 이메일_알림 이력과 연결 후보 ID를 최근 생성순으로 조회. 메일 본문은 응답하지 않음 |
 | API-05 공개 흐름과 후속 API 경계 | API-05를 신규 Frontend 검색 흐름의 공개 진입점으로 사용하고 포털기관 목록 2번 API를 호출. `lostItemId`는 내부 검색 건 ID, `openId=atcId`이며 `fdSn`은 선행 0을 포함한 원문 문자열을 보존하는 상세조회 식별자이다. API-07, 추적 API-16·17, `GET /api/lost-items/{lostItemId}/results`는 후속 작업으로 분리하며 API-11~15는 신규 Frontend 흐름에서 사용하지 않음 |
 | OpenAI 후보 랭킹 알려진 제한 | 실제 OpenAI 후보 랭킹 실호출(후보 72건)에서 `rankingStatus=UNAVAILABLE`이 발생. Issue #80에서 평가 대상 20건 축약·AI rank 생성 제거·서버 순위 산출·내부 실패 category 로그를 적용했으며, 실호출 재검증은 남아 있음 |
 | 후보 랭킹 실패 진단 | 실패 단계를 `CONFIG_MISSING`·`REQUEST_INVALID`·`REQUEST_TOO_LARGE`·`HTTP_ERROR`·`CONNECTION_ERROR`·`TIMEOUT`·`RATE_LIMITED`·`REFUSAL`·`INCOMPLETE`·`OUTPUT_LIMIT`·`ENVELOPE_INVALID`·`JSON_INVALID`·`SCHEMA_INVALID`·`CANDIDATE_SET_INVALID`·`SCORE_INVALID`·`REASON_INVALID` 내부 category로 구분해 로그에만 남김. API-05에서만 사용하며 로그에는 category·HTTP status·후보 수·요청 byte 수·알려진 응답 status/incomplete reason만 기록하고 공개 API warning 계약은 변경하지 않음. 후보 표시 필드의 개인정보 마스킹은 별도 보안 Issue |
@@ -57,7 +62,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 이메일 발송 서비스 | 미결정 |
+| 이메일 발송 서비스 | SMTP(JavaMailSender, `MAIL_*` 환경변수)로 발송. 운영에서 사용할 메일 제공자·계정은 미결정 |
 | 외부 API 잔여 계약 | 일반·포털 상세 API 계약과 필드 매핑은 확인됨. 공통코드 실제 계약·코드표와 일반 정상 빈 결과·별도 오류 봉투 세부 구조는 미확정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
 | 화면 상세 설계 | 미결정 |
@@ -81,4 +86,5 @@
 | 2026-09-28 | OpenAI 후보 랭킹과 추천 이유 | API-05 내부에서 포털기관 목록 2번 API의 ItemList를 요청 범위 `candidateKey`로만 전달하고, 최대 100건·128 KiB·`store=false`·strict JSON Schema 및 서버 재검증을 적용. 성공·fallback 모두 transient 결과이며 LostItemCandidate/current/baseline 관계는 저장하지 않고 응답용 FoundItem 원본 캐시만 upsert. 자동 재시도와 자동 모델 fallback은 사용하지 않음 | Issue #57 | 안지산 |
 | 2026-09-28 | OpenAI 모델 | Responses API와 strict Structured Outputs 지원, 비용·속도, 구조화 추출·후보 랭킹 적합성을 근거로 `gpt-4o-mini`를 확정. 모델은 `OPENAI_MODEL`로만 주입하고 Java와 `application.yml`에는 기본값을 두지 않음 | Issue #57 모델 결정 | 안지산 |
 | 2026-09-28 | 회원 정보 수정 | API-20 `POST /api/members/me`로 회원 사용 언어(`languageCode`)를 변경. 이미 등록된 분실물의 언어는 유지 | Issue #72 | PR 승인 후 기재 |
+| 2026-09-28 | 추적 재검색과 이메일 알림 | 추적 기준 후보·일일 재검색을 포털기관 목록 1번 API 습득일 범위 조회와 저장된 검색어 서버 매칭으로 처리. `lost_items`에 검색어 컬럼 2개 추가, 새 후보 전부 알림, 이메일_알림 발송·이력 조회(API-15) | Issue #85 | PR 승인 후 기재 |
 | 2026-09-28 | OpenAI 후보 랭킹 안정화 | API-05 OpenAI 평가 대상을 최대 20건으로 줄이고, 규칙 점수(NFKC·소문자·공백/구두점 완화 비교)→습득일 최신순→출처→`atcId`→`fdSn` 순서의 결정적 사전 축약을 적용. AI 출력은 요청별 동적 Schema(`candidates.c1..cN`)의 `score`·`isSimilar`·`reason`으로 제한하고 최종 rank는 AI score→규칙 점수→습득일→요청 순서로 서버가 부여. fallback도 같은 20건을 사용하며 후보 평가 timeout·429도 API-05를 실패시키지 않고 fallback. 실패 단계는 내부 category 로그로 구분. 정책은 API-05 전용 `CandidatePreselector`·`InitialSearchCandidateRanker`·`InitialSearchRuleScorer`로 격리하고 Legacy API-11·14와 공유 `CandidateRanker`·`SimpleTextSimilarityRanker`는 변경하지 않음. 모델 `gpt-4o-mini`, timeout, 자동 재시도·모델 fallback 없음, API-05 공개 계약과 Candidate 미영속 정책은 유지 | Issue #80 | PR 승인 후 기재 |

@@ -75,6 +75,14 @@ public class LostItem extends BaseTimeEntity {
 	@Column(name = "search_start_date")
 	private LocalDate searchStartDate;
 
+	/** AI가 구조화한 포털기관 물품명 검색어. 추적 재검색이 같은 검색어로 후보를 매칭한다. */
+	@Column(name = "product_name_keyword", length = 200)
+	private String productNameKeyword;
+
+	/** AI가 구조화한 포털기관 보관장소 검색어. 분실 장소(lost_place_text)와 다르다. */
+	@Column(name = "storage_place_keyword", length = 200)
+	private String storagePlaceKeyword;
+
 	@Column(name = "notification_email", length = 254)
 	private String notificationEmail;
 
@@ -147,6 +155,26 @@ public class LostItem extends BaseTimeEntity {
 		this.lostDateFrom = lostDateFrom;
 		this.lostDateTo = lostDateTo;
 		this.lostPlaceText = lostPlaceText;
+	}
+
+	/**
+	 * AI가 새로 구조화한 검색어만 반영한다. 후속 대화에서 AI가 검색어를 돌려주지 않으면(null)
+	 * 이전 검색어를 유지해, 추적 재검색이 쓰는 조건이 의도치 않게 지워지지 않게 한다.
+	 */
+	public void updateSearchKeywords(String productNameKeyword, String storagePlaceKeyword) {
+		if (productNameKeyword != null) {
+			this.productNameKeyword = productNameKeyword;
+		}
+		if (storagePlaceKeyword != null) {
+			this.storagePlaceKeyword = storagePlaceKeyword;
+		}
+	}
+
+	/** 추적 활성화 시 습득물_조회_시작일이 비어 있으면 정해진 기본값으로 채운다. */
+	public void fillSearchStartDateIfAbsent(LocalDate searchStartDate) {
+		if (this.searchStartDate == null) {
+			this.searchStartDate = searchStartDate;
+		}
 	}
 
 	public void updateNotificationEmail(String notificationEmail) {

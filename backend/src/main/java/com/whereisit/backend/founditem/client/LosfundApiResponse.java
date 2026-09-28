@@ -32,6 +32,10 @@ public class LosfundApiResponse {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class Body {
+		/** 조건에 맞는 전체 건수. 여러 페이지를 이어 받을 때 끝을 판단한다. */
+		@JacksonXmlProperty(localName = "totalCount")
+		public Integer totalCount;
+
 		@JacksonXmlElementWrapper(localName = "items")
 		@JacksonXmlProperty(localName = "item")
 		public List<Item> items;
