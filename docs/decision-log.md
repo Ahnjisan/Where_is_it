@@ -47,8 +47,10 @@
 | API-05 결과 수명 | 검색 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지. `candidates`는 현재 Frontend 호환용 JSON 이름이며 Candidate DB 저장을 의미하지 않고 `candidateId=null`, `persisted=false`를 반환. 새로고침·직접 URL 접근·과거 결과 재조회와 결과 Snapshot 정책은 후속 작업 |
 | 후보 랭킹 테스트 | 실제 OpenAI·경찰·포털 네트워크 없이 Mock/Fake로 정상·fallback·Schema/후보 변조·Transaction 경계를 검증 |
 | Issue #37 통합 경계 | 현재 main에는 Issue #37 알림·Batch 구현이 없다. 향후 main 통합 시 `CandidateResponse`, `LostItemCandidate`, 후보 Repository와 Notification 연동을 재검증한다 |
-| 외부 식별자와 후속 API 경계 | `lostItemId`는 내부 검색 건 ID, `openId=atcId`이며 `fdSn`과 함께 상세조회 식별자이다. API-07, 추적 API-16·17, `GET /api/lost-items/{lostItemId}/results`는 후속 작업으로 분리하며 Issue #57은 API-11~15를 공개 흐름으로 다시 활성화하지 않음 |
+| API-05 공개 흐름과 후속 API 경계 | API-05를 신규 Frontend 검색 흐름의 공개 진입점으로 사용하고 포털기관 목록 2번 API를 호출. `lostItemId`는 내부 검색 건 ID, `openId=atcId`이며 `fdSn`은 선행 0을 포함한 원문 문자열을 보존하는 상세조회 식별자이다. API-07, 추적 API-16·17, `GET /api/lost-items/{lostItemId}/results`는 후속 작업으로 분리하며 API-11~15는 신규 Frontend 흐름에서 사용하지 않음 |
+| OpenAI 후보 랭킹 알려진 제한 | 실제 OpenAI 후보 랭킹 실호출에서 `rankingStatus=UNAVAILABLE`이 발생했으며 원인 진단과 해결은 후속 Issue 범위로 분리 |
 | API 문서화 | springdoc-openapi 2.8.x(Spring Boot 3.5 호환)로 Swagger UI(`/swagger-ui.html`)와 OpenAPI JSON(`/v3/api-docs`)을 제공. 문서 경로는 인증 없이 조회 가능하며, 운영 환경 노출 여부는 배포 환경 결정 시 정함 |
+| 회원 정보 수정 | API-20 `POST /api/members/me`. 수정 가능한 항목은 회원 사용 언어(`languageCode`)뿐이며 필수. 허용값과 오류 코드는 회원가입과 같음(`ko`·`en`, 그 외 `UNSUPPORTED_LANGUAGE`). 이미 등록된 분실물의 언어는 바꾸지 않음 |
 
 ## 미결정 항목
 
@@ -57,7 +59,6 @@
 | 이메일 발송 서비스 | 미결정 |
 | 외부 API 잔여 계약 | 일반·포털 상세 API 계약과 필드 매핑은 확인됨. 공통코드 실제 계약·코드표와 일반 정상 빈 결과·별도 오류 봉투 세부 구조는 미확정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
-| AI 입출력 JSON Schema | strict JSON Schema로 날짜·장소·ASSISTANT 메시지 네 필드만 허용 |
 | 화면 상세 설계 | 미결정 |
 | 배포 환경 | 미결정 |
 
@@ -78,3 +79,4 @@
 | 2026-09-28 | API 문서화 | springdoc-openapi 2.8.17로 Swagger UI·OpenAPI JSON 제공. 문서 경로(`/swagger-ui/**`, `/v3/api-docs/**`)는 GET만 인증 없이 허용 | Issue #62 | PR 승인 후 기재 |
 | 2026-09-28 | OpenAI 후보 랭킹과 추천 이유 | API-05 내부에서 포털기관 목록 2번 API의 ItemList를 요청 범위 `candidateKey`로만 전달하고, 최대 100건·128 KiB·`store=false`·strict JSON Schema 및 서버 재검증을 적용. 성공·fallback 모두 transient 결과이며 LostItemCandidate/current/baseline 관계는 저장하지 않고 응답용 FoundItem 원본 캐시만 upsert. 자동 재시도와 자동 모델 fallback은 사용하지 않음 | Issue #57 | 안지산 |
 | 2026-09-28 | OpenAI 모델 | Responses API와 strict Structured Outputs 지원, 비용·속도, 구조화 추출·후보 랭킹 적합성을 근거로 `gpt-4o-mini`를 확정. 모델은 `OPENAI_MODEL`로만 주입하고 Java와 `application.yml`에는 기본값을 두지 않음 | Issue #57 모델 결정 | 안지산 |
+| 2026-09-28 | 회원 정보 수정 | API-20 `POST /api/members/me`로 회원 사용 언어(`languageCode`)를 변경. 이미 등록된 분실물의 언어는 유지 | Issue #72 | PR 승인 후 기재 |

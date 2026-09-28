@@ -20,6 +20,8 @@ vi.mock("@/context/AppContext", () => ({
     lang: "ko",
     t: {
       searchResults: "검색 결과",
+      searchExpiredTitle: "검색 결과가 만료되었습니다. 다시 검색해 주세요.",
+      searchGoBack: "검색 화면으로 돌아가기",
       sortRecommend: "추천순",
       sortLatest: "최신순",
       filterAdjust: "필터",

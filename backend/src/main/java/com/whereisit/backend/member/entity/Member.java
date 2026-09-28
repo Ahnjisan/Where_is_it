@@ -49,4 +49,9 @@ public class Member extends BaseTimeEntity {
 	public static Member create(String email, String passwordHash, LanguageCode languageCode) {
 		return new Member(email, passwordHash, languageCode);
 	}
+
+	/** API-20. 이미 등록한 분실물의 언어는 바꾸지 않는다(분실물마다 language_code를 따로 저장한다). */
+	public void changeLanguageCode(LanguageCode languageCode) {
+		this.languageCode = languageCode;
+	}
 }
