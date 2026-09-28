@@ -73,7 +73,10 @@ public class LostItemController {
 		return ApiResponse.ok(lostItemService.list(memberId, status, pageable));
 	}
 
-	@Operation(summary = "API-07 분실물 상세")
+	@Operation(summary = "API-07 분실물 상세", description = """
+			현재 결과 1위 후보(순위 ASC, null은 마지막)의 상세를 currentCandidate에 함께 반환한다.
+			아직 후보가 없으면 currentCandidate는 null이다. 후보의 상세(습득 장소·보관 연락처·설명)는
+			경찰청·포털기관 상세조회 API로 최초 1회만 조회해 저장하고, 이후 조회부터는 저장된 값을 그대로 쓴다.""")
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH_REQUIRED(토큰 없음), INVALID_TOKEN, TOKEN_EXPIRED"),
