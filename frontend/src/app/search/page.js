@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   ChevronLeft,
   SlidersHorizontal,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
+import { adaptSearchCandidates } from "@/lib/searchCandidateAdapter";
 
 function ItemThumbnail({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -42,7 +42,7 @@ function SearchResultsContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "검은 지갑";
 
-  const { lang, setLang, t, items, addTracking, showToast } = useApp();
+  const { lang, t, searchExecution, addTracking, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortMode, setSortMode] = useState("recommend"); // "recommend" | "latest"
@@ -52,6 +52,11 @@ function SearchResultsContent() {
     color: "전체",
     lostDate: "",
   });
+
+  const items = useMemo(
+    () => adaptSearchCandidates(searchExecution?.candidates || []),
+    [searchExecution],
+  );
 
   const filteredItems = useMemo(() => {
     let list = [...items];
@@ -69,9 +74,17 @@ function SearchResultsContent() {
     }
 
     if (sortMode === "recommend") {
-      list.sort((a, b) => b.matchRate - a.matchRate);
+      list.sort((a, b) => {
+        if (a.rank == null) return b.rank == null ? 0 : 1;
+        if (b.rank == null) return -1;
+        return a.rank - b.rank;
+      });
     } else {
-      list.sort((a, b) => new Date(b.date) - new Date(a.date));
+      list.sort((a, b) => {
+        if (!a.date) return b.date ? 1 : 0;
+        if (!b.date) return -1;
+        return new Date(b.date) - new Date(a.date);
+      });
     }
 
     return list;
@@ -122,6 +135,26 @@ function SearchResultsContent() {
       router.push("/tracking");
     }, 500);
   };
+
+  if (!searchExecution) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#f8f9fa] px-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4 text-gray-400">
+          <Sparkles className="w-6 h-6" />
+        </div>
+        <p className="text-sm font-bold text-gray-800 mb-2">
+          검색 결과가 만료되었습니다. 다시 검색해 주세요.
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="mt-3 px-4 py-2.5 rounded-xl bg-[#85132d] text-white text-xs font-bold shadow-sm cursor-pointer"
+        >
+          검색 화면으로 돌아가기
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-[#f8f9fa] animate-in fade-in duration-200">
@@ -197,12 +230,27 @@ function SearchResultsContent() {
         </p>
       </div>
 
+      {searchExecution.lookupStatus === "PARTIAL" && (
+        <div className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-xs font-bold text-amber-800">
+            일부 기관 조회에 실패했습니다. 제공 가능한 결과만 표시합니다.
+          </p>
+          {searchExecution.warnings?.length > 0 && (
+            <p className="mt-1 text-[11px] text-amber-700">
+              {searchExecution.warnings.join(", ")}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* 결과 카드 리스트 */}
       <div className="p-4 space-y-3 pb-24">
         {filteredItems.map((item) => (
           <div
-            key={item.id}
-            onClick={() => router.push(`/items/${item.id}`)}
+            key={item.id ?? `${item.sourceType}-${item.atcId}-${item.fdSn}-${item.rank}`}
+            onClick={() =>
+              showToast("상세 조회 연동은 다음 단계에서 제공됩니다.", "info")
+            }
             className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer active:scale-[0.99] flex gap-3.5 items-start"
           >
             {/* 분실물 썸네일 이미지 */}
@@ -227,11 +275,6 @@ function SearchResultsContent() {
                     </span>
                   )}
                 </div>
-                {item.matchRate && (
-                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
-                    {item.matchRate}% {t.matchSuffix}
-                  </span>
-                )}
               </div>
 
               {/* 1. 분실물 이름: 긴 텍스트도 독립적으로 유지 (2줄 말줄임 지원) */}
@@ -243,12 +286,12 @@ function SearchResultsContent() {
               <div className="space-y-1 text-xs text-gray-500 font-medium pt-0.5 border-t border-gray-50">
                 <div className="flex items-center gap-1.5 truncate">
                   <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span>{item.date}</span>
+                  <span>{item.date || "날짜 정보 없음"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                   <span className="truncate">
-                    {item.storageFacility || item.location}
+                    {item.storageFacility || item.location || "장소 정보 없음"}
                   </span>
                 </div>
               </div>

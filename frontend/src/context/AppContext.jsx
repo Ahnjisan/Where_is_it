@@ -10,6 +10,7 @@ export function AppProvider({ children }) {
   const [lang, setLang] = useState("ko");
   const [items, setItems] = useState(INITIAL_LOST_ITEMS);
   const [trackingData, setTrackingData] = useState(INITIAL_TRACKING_LIST);
+  const [searchExecution, setSearchExecution] = useState(null);
   const [toast, setToast] = useState({ message: "", type: "success" });
   const [user, setUser] = useState(() => {
     if (typeof window !== "undefined") {
@@ -55,10 +56,15 @@ export function AppProvider({ children }) {
       }
     }
     setUser(null);
+    setSearchExecution(null);
     console.log("[AppContext] 사용자 세션 초기화 완료");
   };
 
   const t = I18N[lang] || I18N.ko;
+
+  const clearSearchExecution = () => {
+    setSearchExecution(null);
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -175,6 +181,9 @@ export function AppProvider({ children }) {
         setLang,
         t,
         items,
+        searchExecution,
+        setSearchExecution,
+        clearSearchExecution,
         trackingData,
         user,
         updateUser,
