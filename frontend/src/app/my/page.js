@@ -12,13 +12,31 @@ import {
 } from "lucide-react";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
+import { memberApi } from "@/lib/api";
+import { I18N } from "@/lib/mockData";
 
 export default function MyPage() {
   const router = useRouter();
-  const { lang, setLang, user, logoutUser, showToast } = useApp();
+  const { lang, setLang, user, logoutUser, showToast, t } = useApp();
 
-  const userEmail = user?.email || "user@whereisit.kr";
-  const userJoinedDate = user?.joinedDate || "2025.09.22";
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const formatJoinedDate = (dateString) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}.${mm}.${dd}`;
+  };
+
+  const userEmail = user?.email || "";
+  const userJoinedDate = user?.createdAt ? formatJoinedDate(user.createdAt) : "";
 
   const handleLogout = () => {
     console.log("[MyPage] 로그아웃 버튼 클릭됨. 사용자 이메일:", userEmail);
@@ -26,11 +44,31 @@ export default function MyPage() {
       logoutUser();
     }
     showToast(
-      lang === "ko" ? "로그아웃되었습니다." : "Logged out successfully.",
+      t.myLogoutInfo,
       "info"
     );
     console.log("[MyPage] /signin 경로로 이동");
     router.push("/signin");
+  };
+
+  const handleChangeLang = async (newLang) => {
+    setLang(newLang);
+    
+    if (user && user.accessToken) {
+      try {
+        await memberApi.updateLanguage(newLang, user.accessToken);
+        showToast(
+          I18N[newLang].myLangSaved,
+          "success"
+        );
+      } catch (error) {
+        console.error("Failed to update user language:", error);
+        showToast(
+          I18N[newLang].myLangFailed,
+          "error"
+        );
+      }
+    }
   };
 
   return (
@@ -47,7 +85,7 @@ export default function MyPage() {
             <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
           </button>
           <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
-            마이페이지
+            {t.myPageTitle}
           </h1>
         </div>
 
@@ -71,12 +109,21 @@ export default function MyPage() {
             <User className="w-7 h-7" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-gray-900 truncate">
-              {userEmail}
-            </h2>
-            <p className="text-xs text-gray-400 font-medium truncate mt-0.5">
-              {lang === "ko" ? `가입일자: ${userJoinedDate}` : `Joined: ${userJoinedDate}`}
-            </p>
+            {!isMounted ? (
+              <div className="space-y-2 py-1">
+                <div className="h-5 bg-gray-100/80 rounded-md w-40 animate-pulse"></div>
+                <div className="h-3.5 bg-gray-50 rounded-md w-24 animate-pulse mt-1"></div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-base font-bold text-gray-900 truncate">
+                  {userEmail}
+                </h2>
+                <p className="text-xs text-gray-400 font-medium truncate mt-0.5">
+                  {lang === "ko" ? `가입일자: ${userJoinedDate}` : `Joined: ${userJoinedDate}`}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -85,11 +132,11 @@ export default function MyPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-gray-800">
               <Globe className="w-4 h-4 text-gray-400" />
-              <span>언어 설정</span>
+              <span>{t.myLanguage}</span>
             </div>
             <LanguageSelector
               currentLang={lang}
-              onChangeLang={setLang}
+              onChangeLang={handleChangeLang}
               variant="badge"
             />
           </div>
@@ -97,9 +144,9 @@ export default function MyPage() {
           <div className="pt-2 border-t border-gray-50 flex items-center justify-between text-xs sm:text-sm font-semibold text-gray-800">
             <div className="flex items-center gap-2.5">
               <Shield className="w-4 h-4 text-gray-400" />
-              <span>개인정보 및 이용약관</span>
+              <span>{t.myPrivacy}</span>
             </div>
-            <span className="text-gray-400 text-xs">보기</span>
+            <span className="text-gray-400 text-xs">{t.myView}</span>
           </div>
         </div>
       </div>

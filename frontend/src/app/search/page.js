@@ -143,14 +143,14 @@ function SearchResultsContent() {
           <Sparkles className="w-6 h-6" />
         </div>
         <p className="text-sm font-bold text-gray-800 mb-2">
-          검색 결과가 만료되었습니다. 다시 검색해 주세요.
+          {t.searchExpiredTitle}
         </p>
         <button
           type="button"
           onClick={() => router.push("/")}
           className="mt-3 px-4 py-2.5 rounded-xl bg-[#85132d] text-white text-xs font-bold shadow-sm cursor-pointer"
         >
-          검색 화면으로 돌아가기
+          {t.searchGoBack}
         </button>
       </div>
     );

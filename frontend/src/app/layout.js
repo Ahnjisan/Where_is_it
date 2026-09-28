@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import AppShell from "@/components/layout/AppShell";
+import { cookies } from "next/headers";
 
 export const metadata = {
   title: "어디갔지 | AI 분실물 찾기",
@@ -23,11 +24,14 @@ export const viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const initialLang = cookieStore.get("where_lang")?.value || "ko";
+
   return (
-    <html lang="ko">
+    <html lang={initialLang}>
       <body className="antialiased">
-        <AppProvider>
+        <AppProvider initialLang={initialLang}>
           <AppShell>{children}</AppShell>
         </AppProvider>
       </body>

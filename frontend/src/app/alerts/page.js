@@ -3,9 +3,11 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 export default function AlertsPage() {
   const router = useRouter();
+  const { t } = useApp();
 
   const alerts = [
     {
@@ -46,10 +48,10 @@ export default function AlertsPage() {
             <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
           </button>
           <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
-            알림 센터
+            {t.alertsTitle}
           </h1>
         </div>
-        <span className="text-xs text-[#85132d] font-bold">읽지 않음 2건</span>
+        <span className="text-xs text-[#85132d] font-bold">{t.alertsUnread} 2{t.alertsCount}</span>
       </header>
 
       <div className="p-4 space-y-2.5">

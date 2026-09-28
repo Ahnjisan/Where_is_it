@@ -1,13 +1,60 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import Toast from "@/components/ui/Toast";
 import { INITIAL_LOST_ITEMS, INITIAL_TRACKING_LIST, I18N } from "@/lib/mockData";
 
 const AppContext = createContext(null);
 
-export function AppProvider({ children }) {
-  const [lang, setLang] = useState("ko");
+export function AppProvider({ children, initialLang = "ko" }) {
+  const [lang, _setLang] = useState(initialLang);
+
+  useEffect(() => {
+    try {
+      let currentClientLang = initialLang;
+      const savedUser = localStorage.getItem("where_user");
+      if (savedUser) {
+        const userObj = JSON.parse(savedUser);
+        if (userObj.languageCode) {
+          currentClientLang = userObj.languageCode;
+        }
+      } else {
+        const savedLang = localStorage.getItem("where_lang");
+        if (savedLang) {
+          currentClientLang = savedLang;
+        }
+      }
+      if (currentClientLang !== initialLang) {
+        setLang(currentClientLang);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [initialLang]);
+
+  const setLang = (newLang) => {
+    _setLang(newLang);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("where_lang", newLang);
+        document.cookie = `where_lang=${newLang}; path=/; max-age=${60 * 60 * 24 * 365}`;
+      } catch (e) {
+        // ignore
+      }
+    }
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, languageCode: newLang };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("where_user", JSON.stringify(updated));
+        } catch (e) {
+          // ignore
+        }
+      }
+      return updated;
+    });
+  };
   const [items, setItems] = useState(INITIAL_LOST_ITEMS);
   const [trackingData, setTrackingData] = useState(INITIAL_TRACKING_LIST);
   const [searchExecution, setSearchExecution] = useState(null);

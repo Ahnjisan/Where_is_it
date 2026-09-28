@@ -61,6 +61,8 @@ export default function SigninPage() {
       if (updateUser) {
         updateUser({
           email: member.email,
+          createdAt: member.createdAt,
+          languageCode: member.languageCode,
           accessToken,
           refreshToken,
           keepLoggedIn,
