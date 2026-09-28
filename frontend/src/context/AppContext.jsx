@@ -20,10 +20,7 @@ export function AppProvider({ children }) {
         // ignore
       }
     }
-    return {
-      email: "user@whereisit.kr",
-      joinedDate: "2025.09.01",
-    };
+    return null;
   });
 
   const updateUser = (userData) => {
@@ -40,8 +37,16 @@ export function AppProvider({ children }) {
     });
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
     console.log("[AppContext] 로그아웃 실행 - 이전 사용자 정보:", user);
+    if (user && user.refreshToken) {
+      try {
+        const { authApi } = await import("@/lib/api");
+        await authApi.logout(user.refreshToken);
+      } catch (e) {
+        console.error("Logout API failed", e);
+      }
+    }
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem("where_user");

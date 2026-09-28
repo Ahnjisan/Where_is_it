@@ -17,48 +17,68 @@ export default function SigninPage() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
-      showToast(lang === "ko" ? "이메일 주소를 입력해 주세요." : "Please enter your email.", "error");
+      showToast(
+        lang === "ko"
+          ? "이메일 주소를 입력해 주세요."
+          : "Please enter your email.",
+        "error",
+      );
       return;
     }
     if (!password) {
-      showToast(lang === "ko" ? "비밀번호를 입력해 주세요." : "Please enter your password.", "error");
+      showToast(
+        lang === "ko"
+          ? "비밀번호를 입력해 주세요."
+          : "Please enter your password.",
+        "error",
+      );
       return;
     }
 
-    // 이메일 형식 검사 (정규식) 또는 비밀번호 8자 이상 규칙 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim()) || password.length < 8) {
       showToast(
         lang === "ko"
           ? "이메일 및 비밀번호 오류입니다."
           : "Invalid email or password.",
-        "error"
+        "error",
       );
       return;
     }
 
-    // 백엔드 API 연동 전 전달값 확인 콘솔 로그
-    console.log("[Signin] 로그인 요청 데이터:", {
-      email,
-      password,
-      keepLoggedIn,
-    });
-
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { authApi } = await import("@/lib/api");
+      const response = await authApi.login({
+        email: email.trim(),
+        password,
+      });
+
+      const { accessToken, refreshToken, member } = response.data;
       if (updateUser) {
-        updateUser({ email: email.trim() });
+        updateUser({
+          email: member.email,
+          accessToken,
+          refreshToken,
+          keepLoggedIn,
+        });
       }
+
       showToast(
-        lang === "ko" ? "로그인되었습니다. 환영합니다!" : "Welcome back! Successfully logged in.",
-        "success"
+        lang === "ko"
+          ? "로그인되었습니다. 환영합니다!"
+          : "Welcome back! Successfully logged in.",
+        "success",
       );
       router.push("/");
-    }, 500);
+    } catch (err) {
+      showToast(err.message || "로그인 실패", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -86,7 +106,11 @@ export default function SigninPage() {
       </div>
 
       {/* 로그인 폼 */}
-      <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="flex-1 flex flex-col justify-between max-w-sm mx-auto w-full"
+      >
         <div className="space-y-4 my-2">
           {/* 이메일 */}
           <div className="relative">
@@ -111,7 +135,11 @@ export default function SigninPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={lang === "ko" ? "비밀번호 (8자 이상)" : "Password (8+ characters)"}
+              placeholder={
+                lang === "ko"
+                  ? "비밀번호 (8자 이상)"
+                  : "Password (8+ characters)"
+              }
               className="w-full h-13 pl-11 pr-11 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#85132d]/20 focus:border-[#85132d] transition-all"
             />
             <button
@@ -120,7 +148,11 @@ export default function SigninPage() {
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="비밀번호 보기 토글"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
             </button>
           </div>
 

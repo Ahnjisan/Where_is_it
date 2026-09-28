@@ -18,7 +18,7 @@ export default function SignupPage() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
       showToast(lang === "ko" ? "이메일 주소를 입력해 주세요." : "Please enter your email.", "error");
@@ -60,31 +60,31 @@ export default function SignupPage() {
       return;
     }
 
-    // 백엔드 API 연동 전 전달값 확인 콘솔 로그
-    console.log("[Signup] 회원가입 요청 데이터:", {
-      email,
-      password,
-      passwordConfirm,
-      agreeTerms,
-    });
-
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const today = new Date();
-      const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
+    try {
+      const { authApi } = await import("@/lib/api");
+      const response = await authApi.signup({
+        email: email.trim(),
+        password,
+        languageCode: lang,
+      });
+
+      const member = response.data;
       if (updateUser) {
         updateUser({
-          email: email.trim(),
-          joinedDate: formattedDate,
+          email: member.email,
         });
       }
       showToast(
         lang === "ko" ? "회원가입이 성공적으로 완료되었습니다!" : "Account created successfully!",
         "success"
       );
-      router.push("/");
-    }, 600);
+      router.push("/signin");
+    } catch (err) {
+      showToast(err.message || "회원가입 실패", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
