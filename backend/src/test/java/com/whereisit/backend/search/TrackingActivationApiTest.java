@@ -1,6 +1,8 @@
 package com.whereisit.backend.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,6 +14,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
@@ -58,6 +62,9 @@ class TrackingActivationApiTest extends ApiTestSupport {
 
 	@MockitoBean
 	private CandidateRanker candidateRanker;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@BeforeEach
 	void mockAi() {
@@ -143,6 +150,95 @@ class TrackingActivationApiTest extends ApiTestSupport {
 				.andExpect(jsonPath("$.data.status").value("SEARCHING"));
 	}
 
+	@Test
+	@DisplayName("Issue #85 저장된 물품명 검색어·분실 기간 시작일로 조회해 조건에 맞는 습득물만 기준 후보가 된다")
+	void baselineUsesStoredKeywordAndLostDateFrom() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 21), "서울역", "지갑", null, "검색 조건을 확인했습니다."));
+		mockSources(List.of(
+				portalEntry("A", "검정 반지갑", "지갑 > 남성용 지갑", LocalDate.of(2026, 9, 21)),
+				portalEntry("U", "우산", "우산", LocalDate.of(2026, 9, 21)),
+				portalEntry("OLD", "지갑", "지갑 > 기타 지갑", LocalDate.of(2026, 9, 19))));
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "서울역에서 검은 지갑을 잃어버렸어요");
+
+		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("TRACKING"))
+				.andExpect(jsonPath("$.data.conditions.searchStartDate").value("2026-09-20"))
+				.andExpect(jsonPath("$.data.lastAutoSearchDate").value("2026-09-22"))
+				.andExpect(jsonPath("$.data.currentCandidateCount").value(1));
+
+		verify(portalClient).searchAllByFoundDate(LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 22));
+		assertThat(jdbcTemplate.queryForList("select f.atc_id, c.is_baseline from lost_item_candidates c "
+				+ "join found_items f on f.found_item_id = c.found_item_id"))
+				.singleElement()
+				.satisfies(row -> {
+					assertThat(row.get("atc_id")).isEqualTo("A");
+					assertThat(flag(row.get("is_baseline"))).isEqualTo(1);
+				});
+	}
+
+	@Test
+	@DisplayName("Issue #85 분실 기간 시작일도 없으면 검색 건 생성일부터 조회한다")
+	void searchStartDateFallsBackToCreatedDate() throws Exception {
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "지갑을 잃어버렸어요");
+
+		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.conditions.searchStartDate").value("2026-09-22"));
+
+		verify(portalClient).searchAllByFoundDate(LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 22));
+	}
+
+	@Test
+	@DisplayName("Issue #85 조회 시작일이 30일보다 이르면 조회는 30일 전부터 하되 저장된 시작일은 유지한다")
+	void lookupIsCappedAtThirtyDays() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				LocalDate.of(2026, 7, 1), null, null, "지갑", null, "검색 조건을 확인했습니다."));
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "7월에 지갑을 잃어버렸어요");
+
+		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.conditions.searchStartDate").value("2026-07-01"));
+
+		verify(portalClient).searchAllByFoundDate(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 9, 22));
+	}
+
+	@Test
+	@DisplayName("Issue #85 조회하는 동안 검색어가 바뀌면 오래된 기준선을 저장하지 않고 409 ITEM_BUSY")
+	void conditionChangeDuringLookupIsRejected() throws Exception {
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "지갑을 잃어버렸어요");
+		when(portalClient.searchAllByFoundDate(any(), any())).thenAnswer(invocation -> {
+			jdbcTemplate.update("update lost_items set product_name_keyword = ? where lost_item_id = ?",
+					"카드지갑", Long.valueOf(lostItemId));
+			return List.of(portalEntry("A", "지갑", "지갑", LocalDate.of(2026, 9, 22)));
+		});
+
+		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("ITEM_BUSY"));
+
+		authorizedGet("/api/lost-items/" + lostItemId, accessToken)
+				.andExpect(jsonPath("$.data.status").value("SEARCHING"));
+		assertThat(jdbcTemplate.queryForObject("select count(*) from lost_item_candidates", Long.class)).isZero();
+	}
+
+	private String createLostItem(String accessToken, String description) throws Exception {
+		JsonNode created = objectMapper.readTree(
+				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", description))
+						.andReturn().getResponse().getContentAsString()).get("data");
+		return created.get("lostItem").get("lostItemId").asText();
+	}
+
+	private FoundItemListEntry portalEntry(String atcId, String productName, String categoryName, LocalDate foundDate) {
+		return new FoundItemListEntry(FoundItemSourceType.PORTAL, atcId, "1", productName, productName, categoryName,
+				"블랙(검정)", foundDate, "서울역 유실물센터", null);
+	}
+
 	private void mockSources(List<FoundItemListEntry> portalResults) {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(portalClient.searchAllByFoundDate(any(), any())).thenReturn(portalResults);
@@ -167,5 +263,10 @@ class TrackingActivationApiTest extends ApiTestSupport {
 					"legacy ranking " + (i + 1), true));
 		}
 		return CandidateRankingResult.success(ranked);
+	}
+
+	/** MySQL은 boolean 컬럼을 bit로 만들어 Boolean을, SQLite는 정수를 돌려준다. */
+	private static int flag(Object value) {
+		return value instanceof Boolean bool ? (bool ? 1 : 0) : ((Number) value).intValue();
 	}
 }
