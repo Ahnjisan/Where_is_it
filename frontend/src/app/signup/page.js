@@ -80,6 +80,8 @@ export default function SignupPage() {
       if (updateUser) {
         updateUser({
           email: member.email,
+          createdAt: member.createdAt,
+          languageCode: member.languageCode,
           accessToken,
           refreshToken,
         });

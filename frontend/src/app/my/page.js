@@ -19,8 +19,24 @@ export default function MyPage() {
   const router = useRouter();
   const { lang, setLang, user, logoutUser, showToast, t } = useApp();
 
-  const userEmail = user?.email || "user@whereisit.kr";
-  const userJoinedDate = user?.joinedDate || "2025.09.22";
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const formatJoinedDate = (dateString) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}.${mm}.${dd}`;
+  };
+
+  const userEmail = user?.email || "";
+  const userJoinedDate = user?.createdAt ? formatJoinedDate(user.createdAt) : "";
 
   const handleLogout = () => {
     console.log("[MyPage] 로그아웃 버튼 클릭됨. 사용자 이메일:", userEmail);
@@ -93,12 +109,21 @@ export default function MyPage() {
             <User className="w-7 h-7" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-gray-900 truncate">
-              {userEmail}
-            </h2>
-            <p className="text-xs text-gray-400 font-medium truncate mt-0.5">
-              {lang === "ko" ? `가입일자: ${userJoinedDate}` : `Joined: ${userJoinedDate}`}
-            </p>
+            {!isMounted ? (
+              <div className="space-y-2 py-1">
+                <div className="h-5 bg-gray-100/80 rounded-md w-40 animate-pulse"></div>
+                <div className="h-3.5 bg-gray-50 rounded-md w-24 animate-pulse mt-1"></div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-base font-bold text-gray-900 truncate">
+                  {userEmail}
+                </h2>
+                <p className="text-xs text-gray-400 font-medium truncate mt-0.5">
+                  {lang === "ko" ? `가입일자: ${userJoinedDate}` : `Joined: ${userJoinedDate}`}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
