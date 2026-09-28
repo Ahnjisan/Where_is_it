@@ -2,13 +2,22 @@ package com.whereisit.backend.lostitem.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whereisit.backend.candidate.dto.CandidateResponse;
+import com.whereisit.backend.candidate.entity.LostItemCandidate;
 import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
+import com.whereisit.backend.founditem.client.FoundItemDetail;
+import com.whereisit.backend.founditem.entity.FoundItem;
+import com.whereisit.backend.founditem.service.FoundItemCollectionService;
 import com.whereisit.backend.global.error.BusinessException;
 import com.whereisit.backend.global.error.CommonErrorCode;
 import com.whereisit.backend.lostitem.dto.CreateLostItemRequest;
@@ -41,6 +50,7 @@ public class LostItemService {
 	private final ChatMessageRepository chatMessageRepository;
 	private final MemberRepository memberRepository;
 	private final LostItemCandidateRepository candidateRepository;
+	private final FoundItemCollectionService foundItemCollectionService;
 	private final Clock clock;
 
 	/** API-05. SEARCHING 건과 첫 USER 메시지만 저장하고, 실제 검색은 실행하지 않는다. */
@@ -68,11 +78,36 @@ public class LostItemService {
 		return LostItemPageResponse.from(page, clock, id -> (int) candidateRepository.countByLostItemIdAndCurrentTrue(id));
 	}
 
-	/** API-07. */
-	@Transactional(readOnly = true)
+	/**
+	 * API-07. 현재 결과 1위 후보("대표 후보", scope=CURRENT와 같은 정렬 기준)의 상세(found_place 등)가
+	 * 아직 없으면 상세 API를 호출해 채운다. 외부 호출 동안 DB 트랜잭션을 물고 있지 않는다
+	 * (SearchExecutionService·TrackingActivationService와 같은 방식).
+	 */
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public LostItemResponse getDetail(Long memberId, Long lostItemId) {
 		LostItem lostItem = findOwned(memberId, lostItemId);
-		return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItem.getId()));
+
+		List<LostItemCandidate> top = candidateRepository.findCurrentOrderedByLostItemId(lostItemId, PageRequest.of(0, 1));
+		if (top.isEmpty()) {
+			return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItemId), null);
+		}
+
+		LostItemCandidate candidate = top.get(0);
+		FoundItem foundItem = candidate.getFoundItem();
+		CandidateResponse currentCandidate = foundItem.getDetailFetchedAt() == null
+				? fetchAndApplyDetail(candidate, foundItem)
+				: CandidateResponse.from(candidate);
+
+		return LostItemResponse.from(lostItem, clock, currentCandidateCount(lostItemId), currentCandidate);
+	}
+
+	/** 상세 호출·저장 모두 실패·미실행 시 null 허용 정책이라, 실패해도 요청은 계속 200으로 성공한다. */
+	private CandidateResponse fetchAndApplyDetail(LostItemCandidate candidate, FoundItem foundItem) {
+		Optional<FoundItemDetail> detail = foundItemCollectionService.fetchDetail(
+				foundItem.getSourceType(), foundItem.getAtcId(), foundItem.getFdSn());
+		return detail
+				.map(d -> CandidateResponse.from(candidate, foundItemCollectionService.applyDetail(foundItem.getId(), d)))
+				.orElseGet(() -> CandidateResponse.from(candidate));
 	}
 
 	/** API-08. 전송된 필드만 바꾸고 EXPIRED 건은 거부한다. */
