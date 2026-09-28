@@ -39,6 +39,24 @@ spring:
         max-page-size: 50
         one-indexed-parameters: false
 
+  # 추적 중 새 후보 이메일 알림(SMTP). 계정은 .env 또는 OS 환경변수 MAIL_*로 주입한다.
+  # host에 기본값을 둬야 JavaMailSender 빈이 만들어진다. 계정이 없으면 앱은 시작되고 발송만 FAILED로 기록된다.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          # SMTP 서버가 응답하지 않아도 배치가 멈추지 않도록 연결·읽기·쓰기 제한시간을 둔다(밀리초).
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
   # JWT로만 인증하므로, Spring Security가 기본 계정(무작위 비밀번호)을 만들어 로그에 찍지 않게 한다.
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration

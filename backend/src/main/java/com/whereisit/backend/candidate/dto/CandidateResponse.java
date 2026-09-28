@@ -7,8 +7,7 @@ import com.whereisit.backend.candidate.ranking.RankedCandidate;
 import com.whereisit.backend.founditem.entity.FoundItem;
 
 /**
- * API 명세 v2 05_응답필드 Candidate. notificationId는 이메일_알림 테이블이 생기는
- * Issue #37 전까지 항상 null이다.
+ * API 명세 v2 05_응답필드 Candidate. notificationId는 이 후보를 알린 이메일_알림 ID이며, 알림 전이면 null이다.
  */
 public record CandidateResponse(
 		String candidateId,
@@ -39,7 +38,7 @@ public record CandidateResponse(
 				candidate.getRecommendationReason(),
 				candidate.isCurrent(),
 				candidate.isBaseline(),
-				null,
+				candidate.getNotification() == null ? null : String.valueOf(candidate.getNotification().getId()),
 				candidate.getFirstSeenAt(),
 				candidate.getLastSeenAt());
 	}
