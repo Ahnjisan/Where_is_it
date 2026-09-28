@@ -46,7 +46,12 @@
 | 후보 랭킹 트랜잭션 | 포털기관 조회, 규칙 기반 사전 축약, OpenAI 후보 랭킹은 DB 트랜잭션 밖에서 실행. 마지막 짧은 트랜잭션에서 분실물 row를 PESSIMISTIC_WRITE로 잠그고 Snapshot을 재검증한 뒤 응답용 FoundItem 원본 캐시만 upsert |
 | API-05 결과 수명 | 검색 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지. `candidates`는 현재 Frontend 호환용 JSON 이름이며 Candidate DB 저장을 의미하지 않고 `candidateId=null`, `persisted=false`를 반환. 새로고침·직접 URL 접근·과거 결과 재조회와 결과 Snapshot 정책은 후속 작업 |
 | 후보 랭킹 테스트 | 실제 OpenAI·경찰·포털 네트워크 없이 Mock/Fake로 정상·fallback·Schema/후보 변조·Transaction 경계를 검증 |
-| Issue #37 통합 경계 | 현재 main에는 Issue #37 알림·Batch 구현이 없다. 향후 main 통합 시 `CandidateResponse`, `LostItemCandidate`, 후보 Repository와 Notification 연동을 재검증한다 |
+| 추적 검색어 저장 | API-05에서 AI가 구조화한 `productNameKeyword`·`storagePlaceKeyword`를 `lost_items.product_name_keyword`·`storage_place_keyword`(VARCHAR(200), NULL 허용)에 저장. AI가 검색어를 돌려주지 않은 후속 대화에서는 기존 검색어를 유지 |
+| 추적 재검색 조회 | 추적 활성화(API-14)의 기준 후보와 일일 재검색은 포털기관 목록 1번 API를 분류·색상·지역 코드 없이 습득일 범위(`START_YMD`~`END_YMD`)로 전량 조회한 뒤, 저장된 검색어로 서버에서 매칭. 물품명 검색어는 물품명·분류명 부분 일치, 보관장소 검색어는 보관장소 부분 일치(대소문자·공백 무시), 습득일은 `search_start_date` 이후. 조회 시작일은 최대 30일 전으로 제한 |
+| 추적 활성화 조건 | 물품명 검색어가 없으면 `INVALID_SEARCH_CONDITION`. `search_start_date`가 비어 있으면 `lost_date_from`, 그것도 없으면 검색 건 생성일로 채움. 기준 후보는 `is_baseline=1`로 저장하고 활성화 당일을 `last_auto_search_date`로 기록 |
+| 추적 일일 배치 | 매일 09:00(KST) 1회 실행. 만료 시각이 지난 TRACKING 건은 검색 없이 EXPIRED로 전환. 오늘 재검색하지 않은 TRACKING 건 전체에 대해 포털기관 조회는 한 번만 하고 건마다 짧은 트랜잭션으로 반영. 조회 실패 시 `last_auto_search_date`를 갱신하지 않음 |
+| 새 후보 알림 | 이 분실물에 처음 나타난 습득물을 새 후보로 보고 전부 알림 대상에 포함. `(lost_item_id, notification_date)`당 이메일_알림 1건을 만들고 발송 결과를 SENT·FAILED와 시도 횟수·오류 코드로 기록. 메일 발송은 DB 트랜잭션 밖에서 실행 |
+| 알림 이력 조회 | API-15 `GET /api/lost-items/{lostItemId}/notifications`로 본인 분실물의 이메일_알림 이력과 연결 후보 ID를 최근 생성순으로 조회. 메일 본문은 응답하지 않음 |
 | API-05 공개 흐름과 후속 API 경계 | API-05를 신규 Frontend 검색 흐름의 공개 진입점으로 사용하고 포털기관 목록 2번 API를 호출. `lostItemId`는 내부 검색 건 ID, `openId=atcId`이며 `fdSn`은 선행 0을 포함한 원문 문자열을 보존하는 상세조회 식별자이다. API-07, 추적 API-16·17, `GET /api/lost-items/{lostItemId}/results`는 후속 작업으로 분리하며 API-11~15는 신규 Frontend 흐름에서 사용하지 않음 |
 | OpenAI 후보 랭킹 알려진 제한 | 실제 OpenAI 후보 랭킹 실호출에서 `rankingStatus=UNAVAILABLE`이 발생했으며 원인 진단과 해결은 후속 Issue 범위로 분리 |
 | API 문서화 | springdoc-openapi 2.8.x(Spring Boot 3.5 호환)로 Swagger UI(`/swagger-ui.html`)와 OpenAPI JSON(`/v3/api-docs`)을 제공. 문서 경로는 인증 없이 조회 가능하며, 운영 환경 노출 여부는 배포 환경 결정 시 정함 |
@@ -56,7 +61,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 이메일 발송 서비스 | 미결정 |
+| 이메일 발송 서비스 | SMTP(JavaMailSender, `MAIL_*` 환경변수)로 발송. 운영에서 사용할 메일 제공자·계정은 미결정 |
 | 외부 API 잔여 계약 | 일반·포털 상세 API 계약과 필드 매핑은 확인됨. 공통코드 실제 계약·코드표와 일반 정상 빈 결과·별도 오류 봉투 세부 구조는 미확정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
 | 화면 상세 설계 | 미결정 |
@@ -80,3 +85,4 @@
 | 2026-09-28 | OpenAI 후보 랭킹과 추천 이유 | API-05 내부에서 포털기관 목록 2번 API의 ItemList를 요청 범위 `candidateKey`로만 전달하고, 최대 100건·128 KiB·`store=false`·strict JSON Schema 및 서버 재검증을 적용. 성공·fallback 모두 transient 결과이며 LostItemCandidate/current/baseline 관계는 저장하지 않고 응답용 FoundItem 원본 캐시만 upsert. 자동 재시도와 자동 모델 fallback은 사용하지 않음 | Issue #57 | 안지산 |
 | 2026-09-28 | OpenAI 모델 | Responses API와 strict Structured Outputs 지원, 비용·속도, 구조화 추출·후보 랭킹 적합성을 근거로 `gpt-4o-mini`를 확정. 모델은 `OPENAI_MODEL`로만 주입하고 Java와 `application.yml`에는 기본값을 두지 않음 | Issue #57 모델 결정 | 안지산 |
 | 2026-09-28 | 회원 정보 수정 | API-20 `POST /api/members/me`로 회원 사용 언어(`languageCode`)를 변경. 이미 등록된 분실물의 언어는 유지 | Issue #72 | PR 승인 후 기재 |
+| 2026-09-28 | 추적 재검색과 이메일 알림 | 추적 기준 후보·일일 재검색을 포털기관 목록 1번 API 습득일 범위 조회와 저장된 검색어 서버 매칭으로 처리. `lost_items`에 검색어 컬럼 2개 추가, 새 후보 전부 알림, 이메일_알림 발송·이력 조회(API-15) | Issue #85 | PR 승인 후 기재 |
