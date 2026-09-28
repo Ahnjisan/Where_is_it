@@ -105,6 +105,19 @@ cd backend
 
 `testSqlite`는 UNIQUE와 FK 제약도 만들지 않아서 중복·참조 위반이 그대로 저장됩니다. 제약 위반을 확인하는 테스트는 `@DisabledIfSystemProperty(named = "spring.profiles.active", matches = "sqlite")`를 붙여 `testSqlite`에서 제외합니다(예: `SignupRaceTest`).
 
+### API 문서 (Swagger UI)
+
+`bootRun`으로 실행한 뒤 브라우저에서 확인합니다. 문서는 springdoc-openapi가 Controller에서 자동으로 만듭니다.
+
+| 항목 | 주소 |
+| --- | --- |
+| Swagger UI | http://localhost:8080/swagger-ui.html |
+| OpenAPI JSON | http://localhost:8080/v3/api-docs |
+
+- 문서는 로그인 없이 볼 수 있습니다. 보호 API를 호출하려면 로그인(API-02) 응답의 `accessToken`을 오른쪽 위 **Authorize**에 넣습니다. `Bearer ` 접두어 없이 토큰만 넣습니다.
+- 넣은 토큰은 새로고침해도 이 브라우저에 남습니다. 공용 PC에서는 **Logout**으로 지웁니다.
+- API를 추가하거나 바꾸면 Controller의 `@Operation`·`@ApiResponses` 설명도 함께 고칩니다. 오류 응답의 본문 형식(`ErrorResponse`)은 `OpenApiConfig`가 한 번에 붙이므로 상태 코드와 오류 코드만 적습니다.
+
 ## 4. Frontend 설치, 빌드 및 실행
 
 Frontend는 Node.js 24.20.0과 npm 11.6.2를 기준으로 합니다. `.nvmrc`와 `package.json`에 버전 기준이 기록되어 있습니다.
