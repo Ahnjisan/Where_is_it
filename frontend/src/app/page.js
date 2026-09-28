@@ -10,7 +10,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function HomePage() {
   const router = useRouter();
-  const { lang, setLang, t, showToast } = useApp();
+  const { lang, setLang, t, showToast, user } = useApp();
 
   const [query, setQuery] = useState("");
   const examplePrompts =
@@ -18,6 +18,13 @@ export default function HomePage() {
 
   const handleSend = () => {
     console.log("[HomePage] handleSend triggered with query:", query);
+    
+    if (!user) {
+      showToast(lang === "ko" ? "로그인 후 이용해주세요." : "Please login to use this feature.", "info");
+      router.push("/signin");
+      return;
+    }
+
     if (!query.trim()) {
       console.log("[HomePage] query is empty, showing toast");
       showToast(
@@ -42,6 +49,14 @@ export default function HomePage() {
     }
   };
 
+  const handleFocus = (e) => {
+    if (!user) {
+      e.target.blur();
+      showToast(lang === "ko" ? "로그인 후 이용해주세요." : "Please login to use this feature.", "info");
+      router.push("/signin");
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col justify-between animate-in fade-in duration-200">
       {/* 상단 네비게이션 헤더 (와이어프레임 03) */}
@@ -53,15 +68,6 @@ export default function HomePage() {
         >
           <BrandLogo size="sm" lang={lang} />
         </Link>
-
-        {/* <Link
-          href="/my"
-          onClick={() => console.log("[HomePage] MyPage link clicked")}
-          className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-all active:scale-95"
-          aria-label="마이페이지"
-        >
-          <User className="w-5 h-5" />
-        </Link> */}
       </header>
 
       {/* 중앙 메인 컨텐츠 영역 */}
@@ -85,7 +91,15 @@ export default function HomePage() {
             {examplePrompts.map((prompt, index) => (
               <div
                 key={index}
-                className="w-fit max-w-full px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-xs sm:text-sm font-medium text-gray-700 flex items-center select-none"
+                className="w-fit max-w-full px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-xs sm:text-sm font-medium text-gray-700 flex items-center select-none cursor-pointer"
+                onClick={() => {
+                  if (!user) {
+                    showToast(lang === "ko" ? "로그인 후 이용해주세요." : "Please login to use this feature.", "info");
+                    router.push("/signin");
+                  } else {
+                    setQuery(prompt);
+                  }
+                }}
               >
                 <span className="truncate">&ldquo;{prompt}&rdquo;</span>
               </div>
@@ -104,6 +118,7 @@ export default function HomePage() {
                   setQuery(e.target.value);
                 }
               }}
+              onFocus={handleFocus}
               onKeyDown={handleKeyDown}
               placeholder={t.searchPlaceholder}
               rows={3}
@@ -124,7 +139,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={!query.trim()}
+                  disabled={query.trim().length === 0 && user} // user가 없을 땐 disabled 해제하여 클릭 시 로그인창 유도
                   className="w-9 h-9 rounded-full bg-[#85132d] hover:bg-[#701025] disabled:bg-gray-200 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all active:scale-90 shadow-sm cursor-pointer"
                   aria-label="전송"
                 >

@@ -63,23 +63,33 @@ export default function SignupPage() {
     setIsLoading(true);
     try {
       const { authApi } = await import("@/lib/api");
-      const response = await authApi.signup({
+      // 1. 회원가입 API 호출
+      await authApi.signup({
         email: email.trim(),
         password,
         languageCode: lang,
       });
 
-      const member = response.data;
+      // 2. 곧바로 로그인 API 호출
+      const loginResponse = await authApi.login({
+        email: email.trim(),
+        password,
+      });
+
+      const { accessToken, refreshToken, member } = loginResponse.data;
       if (updateUser) {
         updateUser({
           email: member.email,
+          accessToken,
+          refreshToken,
         });
       }
+
       showToast(
-        lang === "ko" ? "회원가입이 성공적으로 완료되었습니다!" : "Account created successfully!",
+        lang === "ko" ? "회원가입 및 로그인이 완료되었습니다!" : "Signed up and logged in successfully!",
         "success"
       );
-      router.push("/signin");
+      router.push("/");
     } catch (err) {
       showToast(err.message || "회원가입 실패", "error");
     } finally {
