@@ -112,7 +112,7 @@ public class SearchExecutionPersistenceService {
 		}
 
 		return new SearchExecutionResponse(
-				LostItemResponse.from(lostItem, clock),
+				LostItemResponse.from(lostItem, clock, (int) candidateRepository.countByLostItemIdAndCurrentTrue(lostItem.getId())),
 				assistantMessage,
 				complete ? "COMPLETE" : "PARTIAL",
 				warnings,
