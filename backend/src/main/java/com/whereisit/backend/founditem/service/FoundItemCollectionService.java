@@ -3,9 +3,11 @@ package com.whereisit.backend.founditem.service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -31,23 +33,23 @@ public class FoundItemCollectionService {
 
 	private final List<FoundItemLookupClient> lookupClients;
 	private final PortalFoundItemNameStorageClient portalNameStorageClient;
-	private final List<FoundItemDetailClient> detailClients;
+	private final Map<FoundItemSourceType, FoundItemDetailClient> detailClients;
 	private final FoundItemRepository foundItemRepository;
 	private final Clock clock;
 
 	@Autowired
 	public FoundItemCollectionService(List<FoundItemLookupClient> lookupClients,
 			PortalFoundItemNameStorageClient portalNameStorageClient,
+			@Qualifier("policeFoundItemDetailClient") FoundItemDetailClient policeDetailClient,
+			@Qualifier("portalFoundItemDetailClient") FoundItemDetailClient portalDetailClient,
 			FoundItemRepository foundItemRepository, Clock clock) {
 		this.lookupClients = lookupClients;
 		this.portalNameStorageClient = portalNameStorageClient;
+		this.detailClients = Map.of(
+				FoundItemSourceType.POLICE, policeDetailClient,
+				FoundItemSourceType.PORTAL, portalDetailClient);
 		this.foundItemRepository = foundItemRepository;
 		this.clock = clock;
-	}
-
-	public FoundItemCollectionService(List<FoundItemLookupClient> lookupClients,
-			FoundItemRepository foundItemRepository, Clock clock) {
-		this(lookupClients, null, foundItemRepository, clock);
 	}
 
 	/** 지정한 출처 하나를 트랜잭션 없이 조회한다. */
@@ -75,9 +77,7 @@ public class FoundItemCollectionService {
 	/** API-07 상세조회용. 실패 시 null 허용 여부는 {@link FoundItemDetailClient}가 이미 처리한다. */
 	@Transactional(propagation = Propagation.NEVER)
 	public Optional<FoundItemDetail> fetchDetail(FoundItemSourceType sourceType, String atcId, String fdSn) {
-		FoundItemDetailClient client = detailClients.stream()
-				.filter(candidate -> candidate.sourceType() == sourceType)
-				.findFirst()
+		FoundItemDetailClient client = Optional.ofNullable(detailClients.get(sourceType))
 				.orElseThrow(() -> new NoSuchElementException("No detail client for " + sourceType));
 		return client.fetchDetail(atcId, fdSn);
 	}
