@@ -24,7 +24,7 @@ import com.whereisit.backend.tracking.TrackingCondition;
 
 import lombok.RequiredArgsConstructor;
 
-/** API-14의 짧은 DB 트랜잭션 구간. 포털기관 조회는 {@link TrackingActivationService}가 트랜잭션 밖에서 한다. */
+/** API-17의 짧은 DB 트랜잭션 구간. 포털기관 조회는 {@link TrackingActivationService}가 트랜잭션 밖에서 한다. */
 @Service
 @RequiredArgsConstructor
 public class TrackingActivationPersistenceService {

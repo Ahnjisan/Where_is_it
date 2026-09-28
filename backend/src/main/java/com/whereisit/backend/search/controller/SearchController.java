@@ -12,6 +12,7 @@ import com.whereisit.backend.search.dto.RunSearchRequest;
 import com.whereisit.backend.search.dto.SearchExecutionResponse;
 import com.whereisit.backend.search.service.SearchExecutionService;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /** API-11 AI 검색·조건 보정·재검색. */
+@Hidden
 @Tag(name = "검색", description = "AI 검색조건 구조화와 습득물 후보 검색")
 @RestController
 @RequestMapping("/api/lost-items/{lostItemId}/searches")

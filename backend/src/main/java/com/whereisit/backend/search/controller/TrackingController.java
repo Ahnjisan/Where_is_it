@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/** API-14 7일 추적 활성화. */
+/** API-17 7일 추적 활성화. */
 @Tag(name = "추적", description = "7일 추적 활성화")
 @RestController
 @RequestMapping("/api/lost-items/{lostItemId}/tracking")
@@ -28,7 +28,7 @@ public class TrackingController {
 
 	private final TrackingActivationService trackingActivationService;
 
-	@Operation(summary = "API-14 7일 추적 활성화", description = """
+	@Operation(summary = "API-17 7일 추적 활성화", description = """
 			포털기관 습득물을 습득일 범위로 조회해 저장된 물품명·보관장소 검색어와 맞는 습득물을 기준 후보로 저장한 뒤
 			TRACKING으로 바꾼다. 만료 시각은 시작 시각 + 7일이다. API-05에서 물품명 검색어가 구조화돼 있어야 하며,
 			검색 시작일(conditions.searchStartDate)이 없으면 분실 기간 시작일, 그것도 없으면 검색 건 생성일을 쓴다.

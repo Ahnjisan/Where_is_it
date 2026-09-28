@@ -14,6 +14,7 @@ import com.whereisit.backend.candidate.dto.CandidateResponse;
 import com.whereisit.backend.candidate.service.CandidateService;
 import com.whereisit.backend.global.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * API-12·13. notificationId 필터는 이메일_알림 테이블이 생기는 Issue #37에서 추가한다.
  */
+@Hidden
 @Tag(name = "후보", description = "추천 습득물 후보 조회")
 @RestController
 @RequestMapping("/api/lost-items/{lostItemId}/candidates")

@@ -47,7 +47,7 @@ import com.whereisit.backend.support.ApiTestSupport;
 import com.whereisit.backend.tracking.TrackingBatchService.TrackingBatchResult;
 
 /**
- * Issue #85 일일 추적 배치. 추적 등록은 실제 API(API-05 → API-14)로 만들고, 외부 호출(포털기관·SMTP)만 Mock으로 둔다.
+ * Issue #85 일일 추적 배치. 추적 등록은 실제 API(API-05 → API-17)로 만들고, 외부 호출(포털기관·SMTP)만 Mock으로 둔다.
  * 시계는 2026-09-22 15:00 KST에서 시작한다.
  */
 @DisplayName("Issue #85 7일 추적 일일 재검색·만료·이메일 알림")
