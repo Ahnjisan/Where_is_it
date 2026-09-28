@@ -6,9 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whereisit.backend.lostitem.dto.CreateLostItemRequest;
 import com.whereisit.backend.lostitem.dto.LostItemResponse;
-import com.whereisit.backend.search.dto.RunSearchRequest;
 import com.whereisit.backend.search.dto.SearchExecutionResponse;
-import com.whereisit.backend.search.dto.SearchMode;
 import com.whereisit.backend.search.service.SearchExecutionService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,9 +26,6 @@ public class InitialSearchOrchestrator {
 	public SearchExecutionResponse createAndSearch(Long memberId, CreateLostItemRequest request) {
 		LostItemResponse created = lostItemService.create(memberId, request);
 		Long lostItemId = Long.valueOf(created.lostItemId());
-		return searchExecutionService.execute(
-				memberId,
-				lostItemId,
-				new RunSearchRequest(SearchMode.INITIAL, null, null));
+		return searchExecutionService.executeInitial(memberId, lostItemId);
 	}
 }

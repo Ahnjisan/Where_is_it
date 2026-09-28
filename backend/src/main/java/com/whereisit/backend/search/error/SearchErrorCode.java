@@ -15,6 +15,7 @@ public enum SearchErrorCode implements ErrorCode {
 	SEARCH_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI search condition extraction timed out."),
 	RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "AI service rate limit was exceeded."),
 	LOST_API_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "Both found-item sources are currently unavailable."),
+	ITEM_BUSY(HttpStatus.CONFLICT, "The lost item changed while the search was running."),
 	TRACKING_BASELINE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Could not establish a baseline candidate set for tracking.");
 
 	private final HttpStatus status;

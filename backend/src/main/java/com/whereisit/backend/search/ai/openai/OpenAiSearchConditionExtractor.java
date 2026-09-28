@@ -35,11 +35,15 @@ import com.whereisit.backend.search.error.SearchErrorCode;
 public class OpenAiSearchConditionExtractor implements AiSearchConditionExtractor {
 
 	private static final int MAX_PLACE_LENGTH = 255;
+	private static final int MAX_SEARCH_KEYWORD_LENGTH = 200;
 	private static final int MAX_ASSISTANT_LENGTH = 2000;
 	private static final Set<String> OUTPUT_FIELDS = Set.of(
-			"lostDateFrom", "lostDateTo", "lostPlaceText", "assistantMessage");
+			"lostDateFrom", "lostDateTo", "lostPlaceText", "productNameKeyword",
+			"storagePlaceKeyword", "assistantMessage");
 	private static final String INSTRUCTIONS = """
-			Extract only the lost date range and free-text lost place from the user's natural language.
+			Extract the lost date range, the place where the user lost the item, and short search keywords.
+			productNameKeyword is the item-name query for the portal found-item list API.
+			storagePlaceKeyword is the custody/storage-place query for that API; it is not the lost place.
 			Preserve an existing date or place when the user does not change it. Use null only when it is unknown or cleared.
 			Write assistantMessage in the requested language and keep it concise.
 			Never create or return common codes, identifiers, status, tracking data, or email data.
@@ -97,13 +101,18 @@ public class OpenAiSearchConditionExtractor implements AiSearchConditionExtracto
 		propertiesSchema.put("lostDateTo", nullableDateSchema());
 		propertiesSchema.put("lostPlaceText",
 				Map.of("type", List.of("string", "null"), "maxLength", MAX_PLACE_LENGTH));
+		propertiesSchema.put("productNameKeyword",
+				Map.of("type", List.of("string", "null"), "minLength", 1, "maxLength", MAX_SEARCH_KEYWORD_LENGTH));
+		propertiesSchema.put("storagePlaceKeyword",
+				Map.of("type", List.of("string", "null"), "minLength", 1, "maxLength", MAX_SEARCH_KEYWORD_LENGTH));
 		propertiesSchema.put("assistantMessage",
 				Map.of("type", "string", "minLength", 1, "maxLength", MAX_ASSISTANT_LENGTH));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
 		schema.put("properties", propertiesSchema);
-		schema.put("required", List.of("lostDateFrom", "lostDateTo", "lostPlaceText", "assistantMessage"));
+		schema.put("required", List.of("lostDateFrom", "lostDateTo", "lostPlaceText",
+				"productNameKeyword", "storagePlaceKeyword", "assistantMessage"));
 		schema.put("additionalProperties", false);
 
 		Map<String, Object> format = new LinkedHashMap<>();
@@ -209,18 +218,24 @@ public class OpenAiSearchConditionExtractor implements AiSearchConditionExtracto
 		LocalDate from = nullableDate(output.get("lostDateFrom"));
 		LocalDate to = nullableDate(output.get("lostDateTo"));
 		String place = nullableString(output.get("lostPlaceText"), MAX_PLACE_LENGTH);
+		String productNameKeyword = nullableNonBlankString(
+				output.get("productNameKeyword"), MAX_SEARCH_KEYWORD_LENGTH);
+		String storagePlaceKeyword = nullableNonBlankString(
+				output.get("storagePlaceKeyword"), MAX_SEARCH_KEYWORD_LENGTH);
 		JsonNode assistantNode = output.get("assistantMessage");
 		if (assistantNode == null || !assistantNode.isTextual()) {
 			throw unavailable();
 		}
 		String assistantMessage = assistantNode.textValue();
-		if (assistantMessage.isBlank() || assistantMessage.length() > MAX_ASSISTANT_LENGTH) {
+		if (assistantMessage.isBlank()
+				|| assistantMessage.codePointCount(0, assistantMessage.length()) > MAX_ASSISTANT_LENGTH) {
 			throw unavailable();
 		}
 		if (from != null && to != null && from.isAfter(to)) {
 			throw unavailable();
 		}
-		return new AiSearchConditionExtractionResult(from, to, place, assistantMessage);
+		return new AiSearchConditionExtractionResult(
+				from, to, place, productNameKeyword, storagePlaceKeyword, assistantMessage);
 	}
 
 	private LocalDate nullableDate(JsonNode node) {
@@ -243,10 +258,18 @@ public class OpenAiSearchConditionExtractor implements AiSearchConditionExtracto
 		if (node.isNull()) {
 			return null;
 		}
-		if (!node.isTextual() || node.textValue().length() > maxLength) {
+		if (!node.isTextual() || node.textValue().codePointCount(0, node.textValue().length()) > maxLength) {
 			throw unavailable();
 		}
 		return node.textValue();
+	}
+
+	private String nullableNonBlankString(JsonNode node, int maxLength) {
+		String value = nullableString(node, maxLength);
+		if (value != null && value.isBlank()) {
+			throw unavailable();
+		}
+		return value;
 	}
 
 	private boolean hasTimeoutCause(Throwable error) {

@@ -91,6 +91,44 @@ public class FoundItemLookupClient {
 		return response.body.items.stream().map(this::toEntry).toList();
 	}
 
+	/** Official portal operation 2. It accepts only optional PRDT_NM and DEP_PLACE filters. */
+	public List<FoundItemListEntry> searchByNameAndStorage(PortalFoundItemSearchQuery query) {
+		LosfundApiResponse response;
+		try {
+			response = restClient.get()
+					.uri(uriBuilder -> {
+						uriBuilder.queryParam("serviceKey", serviceKey)
+								.queryParam("pageNo", PAGE_NO)
+								.queryParam("numOfRows", NUM_OF_ROWS);
+						if (query.productNameKeyword() != null) {
+							uriBuilder.queryParam("PRDT_NM", query.productNameKeyword());
+						}
+						if (query.storagePlaceKeyword() != null) {
+							uriBuilder.queryParam("DEP_PLACE", query.storagePlaceKeyword());
+						}
+						return uriBuilder.build();
+					})
+					.retrieve()
+					.body(LosfundApiResponse.class);
+		}
+		catch (RestClientException e) {
+			throw new FoundItemLookupException(sourceType, e);
+		}
+		return entries(response);
+	}
+
+	private List<FoundItemListEntry> entries(LosfundApiResponse response) {
+		if (response == null || response.header == null || !OK_RESULT_CODE.equals(response.header.resultCode)) {
+			String resultCode = response == null || response.header == null ? null : response.header.resultCode;
+			String resultMsg = response == null || response.header == null ? null : response.header.resultMsg;
+			throw new FoundItemLookupException(sourceType, resultCode, resultMsg);
+		}
+		if (response.body == null || response.body.items == null) {
+			return List.of();
+		}
+		return response.body.items.stream().map(this::toEntry).toList();
+	}
+
 	private FoundItemListEntry toEntry(LosfundApiResponse.Item item) {
 		return new FoundItemListEntry(
 				sourceType,

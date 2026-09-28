@@ -44,11 +44,11 @@ public record CandidateResponse(
 				candidate.getLastSeenAt());
 	}
 
-	/** 부분 조회(PARTIAL) 결과처럼 저장되지 않은 일시적 후보. candidateId는 null이다. */
-	public static CandidateResponse transientOf(RankedCandidate ranked) {
+	/** API-05처럼 Candidate 관계를 저장하지 않은 Frontend 호환용 일시 결과. candidateId는 null이다. */
+	public static CandidateResponse transientOf(FoundItem foundItem, RankedCandidate ranked) {
 		return new CandidateResponse(
 				null,
-				FoundItemResponse.from(ranked.foundItem()),
+				FoundItemResponse.from(foundItem),
 				ranked.rank(),
 				ranked.similar(),
 				ranked.reason(),

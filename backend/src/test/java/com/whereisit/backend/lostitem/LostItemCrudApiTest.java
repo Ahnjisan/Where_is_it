@@ -33,6 +33,7 @@ import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
 import com.whereisit.backend.founditem.client.FoundItemDetail;
 import com.whereisit.backend.founditem.client.FoundItemDetailClient;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
+import com.whereisit.backend.founditem.client.PortalFoundItemNameStorageClient;
 import com.whereisit.backend.founditem.entity.FoundItem;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.founditem.repository.FoundItemRepository;
@@ -66,6 +67,9 @@ class LostItemCrudApiTest extends ApiTestSupport {
 	private FoundItemDetailClient portalDetailClient;
 
 	@MockitoBean
+	private PortalFoundItemNameStorageClient portalNameStorageClient;
+
+	@MockitoBean
 	private AiSearchConditionExtractor aiSearchConditionExtractor;
 
 	@Autowired
@@ -83,6 +87,7 @@ class LostItemCrudApiTest extends ApiTestSupport {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenReturn(List.of());
 		when(portalClient.search(any())).thenReturn(List.of());
+		when(portalNameStorageClient.search(any())).thenReturn(List.of());
 		when(policeDetailClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
 		when(portalDetailClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(

@@ -1,6 +1,8 @@
 package com.whereisit.backend.founditem;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -22,6 +24,7 @@ import com.whereisit.backend.founditem.client.FoundItemDetailClient;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.client.FoundItemSearchQuery;
+import com.whereisit.backend.founditem.client.PortalFoundItemNameStorageClient;
 import com.whereisit.backend.founditem.entity.FoundItem;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.founditem.repository.FoundItemRepository;
@@ -42,6 +45,8 @@ class FoundItemCollectionServiceTest {
 
 	private FoundItemLookupClient policeClient;
 	private FoundItemDetailClient policeDetailClient;
+	private FoundItemDetailClient portalDetailClient;
+	private PortalFoundItemNameStorageClient portalNameStorageClient;
 	private FoundItemCollectionService collectionService;
 
 	@BeforeEach
@@ -50,8 +55,12 @@ class FoundItemCollectionServiceTest {
 		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
 		policeDetailClient = Mockito.mock(FoundItemDetailClient.class);
 		when(policeDetailClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+		portalDetailClient = Mockito.mock(FoundItemDetailClient.class);
+		when(portalDetailClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
+		portalNameStorageClient = Mockito.mock(PortalFoundItemNameStorageClient.class);
 		collectionService = new FoundItemCollectionService(
-				List.of(policeClient), List.of(policeDetailClient), foundItemRepository, clock);
+				List.of(policeClient), portalNameStorageClient, policeDetailClient, portalDetailClient,
+				foundItemRepository, clock);
 	}
 
 	@Test
@@ -89,7 +98,8 @@ class FoundItemCollectionServiceTest {
 		when(portalClient.search(query)).thenReturn(List.of(
 				new FoundItemListEntry(FoundItemSourceType.PORTAL, "999", "1", "우산(포털)", null, null, null, null, null, null)));
 		collectionService = new FoundItemCollectionService(
-				List.of(policeClient, portalClient), List.of(policeDetailClient), foundItemRepository, clock);
+				List.of(policeClient, portalClient), portalNameStorageClient, policeDetailClient, portalDetailClient,
+				foundItemRepository, clock);
 
 		List<FoundItemListEntry> entries = new java.util.ArrayList<>(
 				collectionService.lookup(FoundItemSourceType.POLICE, query));
@@ -115,5 +125,16 @@ class FoundItemCollectionServiceTest {
 		assertThat(updated.getStoragePhone()).isEqualTo("02-1234-5678");
 		assertThat(updated.getDescription()).isEqualTo("검정 장지갑");
 		assertThat(updated.getDetailFetchedAt()).isNotNull();
+	}
+
+	@Test
+	void portalDetailLookupUsesOnlyPortalDetailClient() {
+		when(portalDetailClient.fetchDetail("portal-atc", "portal-fd-sn"))
+				.thenReturn(Optional.empty());
+
+		collectionService.fetchDetail(FoundItemSourceType.PORTAL, "portal-atc", "portal-fd-sn");
+
+		verify(portalDetailClient).fetchDetail("portal-atc", "portal-fd-sn");
+		verify(policeDetailClient, never()).fetchDetail("portal-atc", "portal-fd-sn");
 	}
 }

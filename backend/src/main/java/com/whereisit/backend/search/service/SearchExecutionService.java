@@ -3,15 +3,24 @@ package com.whereisit.backend.search.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whereisit.backend.candidate.ranking.CandidateRanker;
+import com.whereisit.backend.candidate.ranking.CandidateRankingInput;
+import com.whereisit.backend.candidate.ranking.CandidateRankingRequest;
+import com.whereisit.backend.candidate.ranking.CandidateRankingResult;
+import com.whereisit.backend.candidate.ranking.SimpleTextSimilarityRanker;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupException;
 import com.whereisit.backend.founditem.client.FoundItemSearchQuery;
+import com.whereisit.backend.founditem.client.PortalFoundItemSearchQuery;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.founditem.service.FoundItemCollectionService;
 import com.whereisit.backend.global.error.BusinessException;
@@ -30,16 +39,57 @@ import com.whereisit.backend.search.service.SearchExecutionPersistenceService.Se
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/** API-11 검색 실행 오케스트레이터. 모든 외부 호출은 활성 DB 트랜잭션 없이 실행한다. */
+/** API-05 내부 검색 실행 서비스. 모든 외부 호출과 후보 랭킹은 활성 DB 트랜잭션 없이 실행한다. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchExecutionService {
 
+	private static final int MAX_CANDIDATES = 100;
+
 	private final SearchExecutionPersistenceService persistenceService;
 	private final AiSearchConditionExtractor aiSearchConditionExtractor;
 	private final FoundItemCollectionService foundItemCollectionService;
+	private final CandidateRanker candidateRanker;
+	private final SimpleTextSimilarityRanker simpleRanker;
 	private final Clock clock;
+
+	/**
+	 * API-05 initial search. Only portal operation 2 is queried and no LostItemCandidate relationship is stored.
+	 */
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public SearchExecutionResponse executeInitial(Long memberId, Long lostItemId) {
+		SearchSnapshot snapshot = persistenceService.prepareInitial(memberId, lostItemId);
+		AiSearchConditionExtractionResult extracted = aiSearchConditionExtractor.extract(
+				new AiSearchConditionExtractionRequest(
+						snapshot.description(), snapshot.description(), snapshot.languageCode(),
+						LocalDate.now(clock), snapshot.lostDateFrom(), snapshot.lostDateTo(), snapshot.lostPlaceText()));
+		AiAppliedResult applied = persistenceService.applyAiResult(memberId, lostItemId, snapshot, extracted);
+		snapshot = applied.snapshot();
+
+		List<FoundItemListEntry> portalEntries;
+		try {
+			portalEntries = foundItemCollectionService.lookupPortalByNameAndStorage(
+					new PortalFoundItemSearchQuery(
+							extracted.productNameKeyword(), extracted.storagePlaceKeyword()));
+		}
+		catch (FoundItemLookupException e) {
+			throw new BusinessException(SearchErrorCode.LOST_API_UNAVAILABLE);
+		}
+
+		CandidateSelection selection = selectCandidates(snapshot.description(), portalEntries);
+		CandidateRankingResult rankingResult = selection.entriesByKey().isEmpty()
+				? CandidateRankingResult.notRun()
+				: candidateRanker.rank(new CandidateRankingRequest(
+						snapshot.description(), snapshot.languageCode(), snapshot.lostDateFrom(), snapshot.lostDateTo(),
+						snapshot.lostPlaceText(), selection.rankingInputs()));
+		if (selection.limited()) {
+			rankingResult = rankingResult.withWarning("RESULT_LIMIT_REACHED");
+		}
+
+		return persistenceService.finalizeInitialSearch(
+				memberId, lostItemId, snapshot, selection.entriesByKey(), rankingResult, applied.assistantMessage());
+	}
 
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public SearchExecutionResponse execute(Long memberId, Long lostItemId, RunSearchRequest request) {
@@ -50,14 +100,9 @@ public class SearchExecutionService {
 		if (request.mode() != SearchMode.FILTER) {
 			AiSearchConditionExtractionResult result = aiSearchConditionExtractor.extract(
 					new AiSearchConditionExtractionRequest(
-							prepared.naturalLanguage(),
-							snapshot.description(),
-							snapshot.languageCode(),
-							LocalDate.now(clock),
-							snapshot.lostDateFrom(),
-							snapshot.lostDateTo(),
-							snapshot.lostPlaceText()));
-			AiAppliedResult applied = persistenceService.applyAiResult(memberId, lostItemId, result);
+							prepared.naturalLanguage(), snapshot.description(), snapshot.languageCode(),
+							LocalDate.now(clock), snapshot.lostDateFrom(), snapshot.lostDateTo(), snapshot.lostPlaceText()));
+			AiAppliedResult applied = persistenceService.applyAiResult(memberId, lostItemId, snapshot, result);
 			snapshot = applied.snapshot();
 			assistantMessage = applied.assistantMessage();
 		}
@@ -72,8 +117,59 @@ public class SearchExecutionService {
 		boolean complete = policeRun.success() && portalRun.success();
 		List<FoundItemListEntry> entries = new ArrayList<>(policeRun.entries());
 		entries.addAll(portalRun.entries());
+		CandidateSelection selection = selectCandidates(snapshot.description(), entries);
+
+		CandidateRankingResult rankingResult;
+		if (selection.entriesByKey().isEmpty()) {
+			rankingResult = CandidateRankingResult.notRun();
+		}
+		else {
+			CandidateRankingRequest rankingRequest = new CandidateRankingRequest(
+					snapshot.description(), snapshot.languageCode(), snapshot.lostDateFrom(), snapshot.lostDateTo(),
+					snapshot.lostPlaceText(), selection.rankingInputs());
+			rankingResult = candidateRanker.rank(rankingRequest);
+		}
+		if (selection.limited()) {
+			rankingResult = rankingResult.withWarning("RESULT_LIMIT_REACHED");
+		}
+
 		return persistenceService.finalizeSearch(
-				memberId, lostItemId, entries, complete, assistantMessage);
+				memberId, lostItemId, snapshot, selection.entriesByKey(), rankingResult,
+				complete, assistantMessage);
+	}
+
+	private CandidateSelection selectCandidates(String description, List<FoundItemListEntry> entries) {
+		Map<NaturalKey, FoundItemListEntry> unique = new LinkedHashMap<>();
+		for (FoundItemListEntry entry : entries) {
+			unique.putIfAbsent(new NaturalKey(entry.sourceType(), entry.atcId(), entry.fdSn()), entry);
+		}
+		List<FoundItemListEntry> selected = new ArrayList<>(unique.values());
+		boolean limited = selected.size() > MAX_CANDIDATES;
+		if (limited) {
+			selected.sort(Comparator
+					.<FoundItemListEntry>comparingInt(entry -> simpleRanker.similarityScore(description, toRankingInput("c0", entry)))
+					.reversed()
+					.thenComparing(FoundItemListEntry::foundDate, Comparator.nullsLast(Comparator.reverseOrder()))
+					.thenComparing(FoundItemListEntry::sourceType, Comparator.nullsLast(Comparator.naturalOrder()))
+					.thenComparing(FoundItemListEntry::atcId, Comparator.nullsFirst(Comparator.naturalOrder()))
+					.thenComparing(FoundItemListEntry::fdSn, Comparator.nullsFirst(Comparator.naturalOrder())));
+			selected = new ArrayList<>(selected.subList(0, MAX_CANDIDATES));
+		}
+
+		Map<String, FoundItemListEntry> entriesByKey = new LinkedHashMap<>();
+		List<CandidateRankingInput> inputs = new ArrayList<>();
+		for (int i = 0; i < selected.size(); i++) {
+			String key = "c" + (i + 1);
+			FoundItemListEntry entry = selected.get(i);
+			entriesByKey.put(key, entry);
+			inputs.add(toRankingInput(key, entry));
+		}
+		return new CandidateSelection(entriesByKey, inputs, limited);
+	}
+
+	private CandidateRankingInput toRankingInput(String key, FoundItemListEntry entry) {
+		return new CandidateRankingInput(key, entry.productName(), entry.subject(), entry.categoryName(),
+				entry.colorName(), entry.foundDate(), entry.storagePlace());
 	}
 
 	private PreparedMode prepare(Long memberId, Long lostItemId, RunSearchRequest request) {
@@ -105,7 +201,7 @@ public class SearchExecutionService {
 			return new SourceRun(sourceType, true, foundItemCollectionService.lookup(sourceType, query));
 		}
 		catch (FoundItemLookupException e) {
-			log.warn("{} 조회 실패, PARTIAL로 처리합니다", sourceType);
+			log.warn("{} 조회 실패, PARTIAL로 처리합니다.", sourceType);
 			return new SourceRun(sourceType, false, List.of());
 		}
 	}
@@ -114,5 +210,14 @@ public class SearchExecutionService {
 	}
 
 	private record SourceRun(FoundItemSourceType sourceType, boolean success, List<FoundItemListEntry> entries) {
+	}
+
+	private record NaturalKey(FoundItemSourceType sourceType, String atcId, String fdSn) {
+	}
+
+	private record CandidateSelection(
+			Map<String, FoundItemListEntry> entriesByKey,
+			List<CandidateRankingInput> rankingInputs,
+			boolean limited) {
 	}
 }
