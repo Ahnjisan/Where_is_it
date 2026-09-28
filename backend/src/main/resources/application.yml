@@ -62,6 +62,16 @@ app:
     model: ${OPENAI_MODEL:}
     timeout: ${OPENAI_TIMEOUT:10s}
 
+# API 문서(Swagger UI: /swagger-ui.html, OpenAPI JSON: /v3/api-docs)(Issue #62)
+springdoc:
+  # jackson-dataformat-xml이 있어서 응답 타입에 application/xml이 함께 표시되지 않도록 JSON으로 고정한다(문서 표시만 바뀜).
+  default-produces-media-type: application/json
+  swagger-ui:
+    # 태그·API를 Controller에 적은 순서 대신 이름순으로 보여준다.
+    tags-sorter: alpha
+    # 새로고침해도 Authorize에 넣은 토큰을 유지한다(브라우저 저장소에만 남는다).
+    persist-authorization: true
+
 logging:
   level:
     # 실행되는 SQL을 로그로 출력(개발용)

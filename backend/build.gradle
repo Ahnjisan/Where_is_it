@@ -24,6 +24,10 @@ dependencies {
 	// 경찰청 습득물정보 조회 API 응답(XML)을 자바 객체로 매핑(Issue #38). 버전은 Jackson BOM이 관리한다.
 	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
 
+	// API 문서화(Swagger UI, /v3/api-docs)(Issue #62). Spring Boot BOM이 관리하지 않아서 버전을 직접 적는다.
+	// 2.8.x가 Spring Boot 3.5용이고, 3.x는 Spring Boot 4용이라 쓰지 않는다.
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
+
 	// 요청 값 검증(@Valid, @NotBlank, @Email 등)
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 

@@ -40,6 +40,10 @@ public class SecurityConfig {
 						// refresh·로그아웃은 AT 대신 요청 본문의 RT로 인증한다. 만료된 AT가 같이 와도 막지 않는다.
 						.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login",
 								"/api/auth/refresh", "/api/auth/logout").permitAll()
+						// API 문서(Swagger UI·OpenAPI JSON, Issue #62). API가 아니라 문서 경로라서 R9의 예외로 둔다.
+						// Swagger UI의 정적 파일과 설정 경로가 여러 개로 나뉘어 있어서 문서 경로 접두어에만 와일드카드를 쓴다.
+						.requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs",
+								"/v3/api-docs/**").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
 				.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
