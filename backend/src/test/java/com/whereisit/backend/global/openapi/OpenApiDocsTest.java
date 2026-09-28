@@ -21,7 +21,7 @@ import com.whereisit.backend.support.ApiTestSupport;
 
 /**
  * Issue #87. /v3/api-docs에 공개 대상 API만 싣는다. API-08·09·11·12·13은 문서에서만 숨기고 URL은 그대로 동작하며,
- * 추적 활성화는 API-17로 표기한다. API-06·15의 노출 상태와 API-16 미구현 상태는 바뀌지 않아야 한다.
+ * 추적 활성화는 API-17로 표기한다. API-06·15의 노출 상태는 바뀌지 않아야 하고, API-16은 Issue #92부터 문서에 싣는다.
  */
 @DisplayName("Issue #87 OpenAPI 문서 노출 범위")
 class OpenApiDocsTest extends ApiTestSupport {
@@ -60,7 +60,7 @@ class OpenApiDocsTest extends ApiTestSupport {
 	}
 
 	@Test
-	@DisplayName("API-06·15는 그대로 싣고 API-16은 지금처럼 없다")
+	@DisplayName("API-06·15는 그대로 싣고 API-16은 Issue #92부터 싣는다")
 	void protectedEndpointsKeepExposure() throws Exception {
 		String body = apiDocsBody();
 		JsonNode paths = objectMapper.readTree(body).get("paths");
@@ -69,7 +69,26 @@ class OpenApiDocsTest extends ApiTestSupport {
 				.isEqualTo("API-06 내 분실물 목록");
 		assertThat(paths.path("/api/lost-items/{lostItemId}/notifications").path("get").path("summary").asText())
 				.isEqualTo("API-15 신규 후보 이메일 알림 이력");
-		assertThat(body).doesNotContain("API-16");
+		assertThat(paths.path("/api/members/me/lost-items").path("get").path("summary").asText())
+				.startsWith("API-16");
+	}
+
+	@Test
+	@DisplayName("Issue #92 API-16은 GET만 싣고 요청 파라미터는 page·size만 문서화한다")
+	void trackedLostItemListIsDocumented() throws Exception {
+		JsonNode pathItem = objectMapper.readTree(apiDocsBody()).get("paths").path("/api/members/me/lost-items");
+
+		List<String> methods = new ArrayList<>();
+		pathItem.fieldNames().forEachRemaining(methods::add);
+		assertThat(methods).containsExactly("get");
+
+		JsonNode operation = pathItem.path("get");
+		assertThat(operation.path("summary").asText()).startsWith("API-16");
+		List<String> parameters = new ArrayList<>();
+		operation.path("parameters").forEach(parameter -> parameters.add(
+				parameter.path("in").asText() + ":" + parameter.path("name").asText()));
+		assertThat(parameters).containsExactlyInAnyOrder("query:page", "query:size");
+		assertThat(operation.path("requestBody").isMissingNode()).isTrue();
 	}
 
 	@Test
