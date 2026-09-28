@@ -7,7 +7,45 @@ import { INITIAL_LOST_ITEMS, INITIAL_TRACKING_LIST, I18N } from "@/lib/mockData"
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [lang, setLang] = useState("ko");
+  const [lang, _setLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedUser = localStorage.getItem("where_user");
+        if (savedUser) {
+          const userObj = JSON.parse(savedUser);
+          if (userObj.languageCode) return userObj.languageCode;
+        }
+        const savedLang = localStorage.getItem("where_lang");
+        if (savedLang) return savedLang;
+      } catch (e) {
+        // ignore
+      }
+    }
+    return "ko";
+  });
+
+  const setLang = (newLang) => {
+    _setLang(newLang);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("where_lang", newLang);
+      } catch (e) {
+        // ignore
+      }
+    }
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, languageCode: newLang };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("where_user", JSON.stringify(updated));
+        } catch (e) {
+          // ignore
+        }
+      }
+      return updated;
+    });
+  };
   const [items, setItems] = useState(INITIAL_LOST_ITEMS);
   const [trackingData, setTrackingData] = useState(INITIAL_TRACKING_LIST);
   const [searchExecution, setSearchExecution] = useState(null);

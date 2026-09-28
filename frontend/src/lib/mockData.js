@@ -334,6 +334,24 @@ export const I18N = {
     emptyDesc: "새로운 분실물을 검색하고 분실물 알림을 등록해보세요.",
     searchLostItemBtn: "분실물 검색하러 가기",
 
+    // 마이페이지
+    myPageTitle: "마이페이지",
+    myLanguage: "언어 설정",
+    myPrivacy: "개인정보 및 이용약관",
+    myView: "보기",
+    myLogoutInfo: "로그아웃되었습니다.",
+    myLangSaved: "언어 설정이 저장되었습니다.",
+    myLangFailed: "언어 설정 저장에 실패했습니다.",
+
+    // 알림 센터
+    alertsTitle: "알림 센터",
+    alertsUnread: "읽지 않음",
+    alertsCount: "건",
+
+    // 검색 만료
+    searchExpiredTitle: "검색 결과가 만료되었습니다. 다시 검색해 주세요.",
+    searchGoBack: "검색 화면으로 돌아가기",
+
     // 알림 토스트
     toastTrackingSuccess:
       "분실물 추적 등록이 완료되었습니다! 신규 습득물이 등록되면 알림을 드려요.",
@@ -428,6 +446,24 @@ export const I18N = {
     emptyCompletedTitle: "No completed tracking history.",
     emptyDesc: "Search for lost items and register for match alerts.",
     searchLostItemBtn: "Search Lost Items",
+
+    // 마이페이지
+    myPageTitle: "My Page",
+    myLanguage: "Language",
+    myPrivacy: "Privacy & Terms",
+    myView: "View",
+    myLogoutInfo: "Logged out successfully.",
+    myLangSaved: "Language settings saved.",
+    myLangFailed: "Failed to save language settings.",
+
+    // 알림 센터
+    alertsTitle: "Notification Center",
+    alertsUnread: "Unread",
+    alertsCount: "items",
+
+    // 검색 만료
+    searchExpiredTitle: "Search results expired. Please search again.",
+    searchGoBack: "Back to Search",
 
     // 알림 토스트
     toastTrackingSuccess:

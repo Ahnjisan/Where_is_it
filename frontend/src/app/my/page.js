@@ -12,10 +12,12 @@ import {
 } from "lucide-react";
 import LanguageSelector from "@/components/common/LanguageSelector";
 import { useApp } from "@/context/AppContext";
+import { memberApi } from "@/lib/api";
+import { I18N } from "@/lib/mockData";
 
 export default function MyPage() {
   const router = useRouter();
-  const { lang, setLang, user, logoutUser, showToast } = useApp();
+  const { lang, setLang, user, logoutUser, showToast, t } = useApp();
 
   const userEmail = user?.email || "user@whereisit.kr";
   const userJoinedDate = user?.joinedDate || "2025.09.22";
@@ -26,11 +28,31 @@ export default function MyPage() {
       logoutUser();
     }
     showToast(
-      lang === "ko" ? "로그아웃되었습니다." : "Logged out successfully.",
+      t.myLogoutInfo,
       "info"
     );
     console.log("[MyPage] /signin 경로로 이동");
     router.push("/signin");
+  };
+
+  const handleChangeLang = async (newLang) => {
+    setLang(newLang);
+    
+    if (user && user.accessToken) {
+      try {
+        await memberApi.updateLanguage(newLang, user.accessToken);
+        showToast(
+          I18N[newLang].myLangSaved,
+          "success"
+        );
+      } catch (error) {
+        console.error("Failed to update user language:", error);
+        showToast(
+          I18N[newLang].myLangFailed,
+          "error"
+        );
+      }
+    }
   };
 
   return (
@@ -47,7 +69,7 @@ export default function MyPage() {
             <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
           </button>
           <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
-            마이페이지
+            {t.myPageTitle}
           </h1>
         </div>
 
@@ -85,11 +107,11 @@ export default function MyPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-gray-800">
               <Globe className="w-4 h-4 text-gray-400" />
-              <span>언어 설정</span>
+              <span>{t.myLanguage}</span>
             </div>
             <LanguageSelector
               currentLang={lang}
-              onChangeLang={setLang}
+              onChangeLang={handleChangeLang}
               variant="badge"
             />
           </div>
@@ -97,9 +119,9 @@ export default function MyPage() {
           <div className="pt-2 border-t border-gray-50 flex items-center justify-between text-xs sm:text-sm font-semibold text-gray-800">
             <div className="flex items-center gap-2.5">
               <Shield className="w-4 h-4 text-gray-400" />
-              <span>개인정보 및 이용약관</span>
+              <span>{t.myPrivacy}</span>
             </div>
-            <span className="text-gray-400 text-xs">보기</span>
+            <span className="text-gray-400 text-xs">{t.myView}</span>
           </div>
         </div>
       </div>

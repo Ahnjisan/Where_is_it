@@ -99,3 +99,25 @@ export const lostItemApi = {
     return response.data;
   },
 };
+
+export const memberApi = {
+  updateLanguage: async (languageCode, accessToken) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch('/members/me', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ languageCode }),
+    });
+
+    // 프로젝트에서 성공 여부를 어떻게 내려주는지 모르지만, 일단 에러 안나면 성공
+    return response;
+  }
+};
