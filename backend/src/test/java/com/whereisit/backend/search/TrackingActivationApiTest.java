@@ -49,6 +49,10 @@ class TrackingActivationApiTest extends ApiTestSupport {
 
 	@BeforeEach
 	void mockAi() {
+		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
+		when(policeClient.search(any())).thenReturn(List.of());
+		when(portalClient.search(any())).thenReturn(List.of());
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(
 				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
 	}
@@ -99,7 +103,7 @@ class TrackingActivationApiTest extends ApiTestSupport {
 				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", "지갑을 잃어버렸어요"))
 						.andReturn().getResponse().getContentAsString()).get("data");
 
-		authorizedPostJson("/api/lost-items/" + created.get("lostItemId").asText() + "/tracking", accessToken, Map.of())
+		authorizedPostJson("/api/lost-items/" + created.get("lostItem").get("lostItemId").asText() + "/tracking", accessToken, Map.of())
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error.code").value("INVALID_SEARCH_CONDITION"));
 	}
@@ -107,13 +111,14 @@ class TrackingActivationApiTest extends ApiTestSupport {
 	@Test
 	@DisplayName("두 출처가 모두 실패해 기준 후보를 확정할 수 없으면 활성화하지 않고 오류를 응답한다")
 	void unavailableBaselineIsRejected() throws Exception {
+		mockSources(List.of());
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItemWithSearchStartDate(accessToken, "지갑을 잃어버렸어요");
+
 		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.POLICE, "99", "TIMEOUT"));
 		when(portalClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.PORTAL, "99", "TIMEOUT"));
-
-		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
-		String lostItemId = createLostItemWithSearchStartDate(accessToken, "지갑을 잃어버렸어요");
 
 		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", accessToken, Map.of())
 				.andExpect(status().isBadGateway())
@@ -134,7 +139,7 @@ class TrackingActivationApiTest extends ApiTestSupport {
 		JsonNode created = objectMapper.readTree(
 				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", description))
 						.andReturn().getResponse().getContentAsString()).get("data");
-		String lostItemId = created.get("lostItemId").asText();
+		String lostItemId = created.get("lostItem").get("lostItemId").asText();
 
 		authorizedPostJson("/api/lost-items/update/" + lostItemId, accessToken,
 				Map.of("conditions", Map.of("searchStartDate", "2026-09-01")))

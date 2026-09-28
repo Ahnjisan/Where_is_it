@@ -1,32 +1,42 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Send, User } from "lucide-react";
+import { LoaderCircle, Send } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
 import { EXAMPLE_PROMPTS_BY_LANG } from "@/lib/mockData";
 import { useApp } from "@/context/AppContext";
+import { lostItemApi } from "@/lib/api";
 
 export default function HomePage() {
   const router = useRouter();
-  const { lang, setLang, t, showToast, user } = useApp();
+  const {
+    lang,
+    t,
+    showToast,
+    user,
+    logoutUser,
+    setSearchExecution,
+    clearSearchExecution,
+  } = useApp();
 
   const [query, setQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const examplePrompts =
     EXAMPLE_PROMPTS_BY_LANG[lang] || EXAMPLE_PROMPTS_BY_LANG.ko;
 
-  const handleSend = () => {
-    console.log("[HomePage] handleSend triggered with query:", query);
-    
-    if (!user) {
+  const handleSend = async () => {
+    if (submittingRef.current) return;
+
+    if (!user?.accessToken) {
       showToast(lang === "ko" ? "로그인 후 이용해주세요." : "Please login to use this feature.", "info");
       router.push("/signin");
       return;
     }
 
     if (!query.trim()) {
-      console.log("[HomePage] query is empty, showing toast");
       showToast(
         lang === "ko"
           ? "분실물에 대한 내용을 입력해 주세요."
@@ -36,15 +46,45 @@ export default function HomePage() {
       return;
     }
 
-    const searchQueryText = query.trim() || (lang === "ko" ? "지갑" : "Wallet");
-    console.log("[HomePage] Navigating to search with query:", searchQueryText);
-    router.push(`/search?q=${encodeURIComponent(searchQueryText)}`);
+    const searchQueryText = query.trim();
+    clearSearchExecution();
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      const result = await lostItemApi.createSearch(
+        { description: searchQueryText, languageCode: lang },
+        user.accessToken,
+      );
+      setSearchExecution(result);
+      router.push(`/search?q=${encodeURIComponent(searchQueryText)}`);
+    } catch (error) {
+      if (error.status === 401) {
+        await logoutUser();
+        showToast(
+          lang === "ko"
+            ? "로그인이 만료되었습니다. 다시 로그인해 주세요."
+            : "Your session has expired. Please sign in again.",
+          "error",
+        );
+        router.push("/signin");
+        return;
+      }
+
+      showToast(
+        error.message ||
+          (lang === "ko" ? "검색 중 오류가 발생했습니다." : "Search failed."),
+        "error",
+      );
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      console.log("[HomePage] Enter key pressed in search input");
       handleSend();
     }
   };
@@ -128,7 +168,11 @@ export default function HomePage() {
             {/* 하단 툴바 */}
             <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-100/80">
               <div className="text-xs text-gray-400 pl-1">
-                {t.enterToSearch}
+                {isSubmitting
+                  ? lang === "ko"
+                    ? "검색 중..."
+                    : "Searching..."
+                  : t.enterToSearch}
               </div>
 
               <div className="flex items-center gap-3">
@@ -139,11 +183,15 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={query.trim().length === 0 && user} // user가 없을 땐 disabled 해제하여 클릭 시 로그인창 유도
+                  disabled={isSubmitting || (query.trim().length === 0 && user)}
                   className="w-9 h-9 rounded-full bg-[#85132d] hover:bg-[#701025] disabled:bg-gray-200 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all active:scale-90 shadow-sm cursor-pointer"
                   aria-label="전송"
                 >
-                  <Send className="w-4 h-4 -translate-x-0.5 translate-y-0.5" />
+                  {isSubmitting ? (
+                    <LoaderCircle className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 -translate-x-0.5 translate-y-0.5" />
+                  )}
                 </button>
               </div>
             </div>

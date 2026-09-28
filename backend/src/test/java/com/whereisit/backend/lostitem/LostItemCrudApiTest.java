@@ -1,20 +1,61 @@
 package com.whereisit.backend.lostitem;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.whereisit.backend.founditem.client.FoundItemLookupClient;
+import com.whereisit.backend.founditem.entity.FoundItemSourceType;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
 
 @DisplayName("API-05~09 분실물 검색·추적 CRUD")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/sql/cleanup-search-test-data.sql",
+		config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+		executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class LostItemCrudApiTest extends ApiTestSupport {
+
+	@MockitoBean(name = "policeFoundItemLookupClient")
+	private FoundItemLookupClient policeClient;
+
+	@MockitoBean(name = "portalFoundItemLookupClient")
+	private FoundItemLookupClient portalClient;
+
+	@MockitoBean
+	private AiSearchConditionExtractor aiSearchConditionExtractor;
+
+	@BeforeEach
+	void mockInitialSearch() {
+		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
+		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
+		when(policeClient.search(any())).thenReturn(List.of());
+		when(portalClient.search(any())).thenReturn(List.of());
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(
+				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
+	}
 
 	@Test
 	@DisplayName("TC-05 최초 분실 설명으로 등록하면 201 SEARCHING이고 언어를 안 주면 회원 언어를 쓴다")
@@ -24,12 +65,14 @@ class LostItemCrudApiTest extends ApiTestSupport {
 
 		authorizedPostJson("/api/lost-items", accessToken, Map.of("description", "잃어버린 파란색 지갑"))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.lostItemId").isString())
-				.andExpect(jsonPath("$.data.description").value("잃어버린 파란색 지갑"))
-				.andExpect(jsonPath("$.data.languageCode").value("en"))
-				.andExpect(jsonPath("$.data.status").value("SEARCHING"))
-				.andExpect(jsonPath("$.data.startedAt").doesNotExist())
-				.andExpect(jsonPath("$.data.currentCandidateCount").value(0));
+				.andExpect(jsonPath("$.data.lostItem.lostItemId").isString())
+				.andExpect(jsonPath("$.data.lostItem.description").value("잃어버린 파란색 지갑"))
+				.andExpect(jsonPath("$.data.lostItem.languageCode").value("en"))
+				.andExpect(jsonPath("$.data.lostItem.status").value("SEARCHING"))
+				.andExpect(jsonPath("$.data.lostItem.startedAt").doesNotExist())
+				.andExpect(jsonPath("$.data.lostItem.currentCandidateCount").value(0))
+				.andExpect(jsonPath("$.data.lookupStatus").value("COMPLETE"))
+				.andExpect(jsonPath("$.data.candidates.length()").value(0));
 	}
 
 	@Test
@@ -39,7 +82,7 @@ class LostItemCrudApiTest extends ApiTestSupport {
 
 		authorizedPostJson("/api/lost-items", accessToken, Map.of("description", "lost blue wallet", "languageCode", "ko"))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.languageCode").value("ko"));
+				.andExpect(jsonPath("$.data.lostItem.languageCode").value("ko"));
 	}
 
 	@Test
@@ -79,7 +122,7 @@ class LostItemCrudApiTest extends ApiTestSupport {
 		JsonNode created = objectMapper.readTree(
 				authorizedPostJson("/api/lost-items", ownerToken, Map.of("description", "lost wallet"))
 						.andReturn().getResponse().getContentAsString()).get("data");
-		String lostItemId = created.get("lostItemId").asText();
+		String lostItemId = created.get("lostItem").get("lostItemId").asText();
 
 		authorizedGet("/api/lost-items", ownerToken)
 				.andExpect(status().isOk())
@@ -171,6 +214,6 @@ class LostItemCrudApiTest extends ApiTestSupport {
 		JsonNode created = objectMapper.readTree(
 				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", description))
 						.andReturn().getResponse().getContentAsString()).get("data");
-		return created.get("lostItemId").asText();
+		return created.get("lostItem").get("lostItemId").asText();
 	}
 }

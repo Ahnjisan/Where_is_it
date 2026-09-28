@@ -109,13 +109,14 @@ class SearchExecutionApiTest extends ApiTestSupport {
 	@Test
 	@DisplayName("두 출처가 모두 실패하면 502 LOST_API_UNAVAILABLE이고 0건 성공으로 위장하지 않는다")
 	void bothSourcesFailingIsAnError() throws Exception {
+		mockSources(List.of(), List.of());
+		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(accessToken, "지갑을 잃어버렸어요");
+
 		when(policeClient.sourceType()).thenReturn(FoundItemSourceType.POLICE);
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.POLICE, "99", "TIMEOUT"));
 		when(portalClient.search(any())).thenThrow(new FoundItemLookupException(FoundItemSourceType.PORTAL, "99", "TIMEOUT"));
-
-		String accessToken = signupAndLogin("user@example.test").get("accessToken").asText();
-		String lostItemId = createLostItem(accessToken, "지갑을 잃어버렸어요");
 
 		authorizedPostJson("/api/lost-items/" + lostItemId + "/searches", accessToken, Map.of("mode", "INITIAL"))
 				.andExpect(status().isBadGateway())
@@ -153,6 +154,6 @@ class SearchExecutionApiTest extends ApiTestSupport {
 		JsonNode created = objectMapper.readTree(
 				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", description))
 						.andReturn().getResponse().getContentAsString()).get("data");
-		return created.get("lostItemId").asText();
+		return created.get("lostItem").get("lostItemId").asText();
 	}
 }

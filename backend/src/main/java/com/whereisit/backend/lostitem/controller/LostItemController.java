@@ -19,7 +19,9 @@ import com.whereisit.backend.lostitem.dto.LostItemPageResponse;
 import com.whereisit.backend.lostitem.dto.LostItemResponse;
 import com.whereisit.backend.lostitem.dto.UpdateLostItemRequest;
 import com.whereisit.backend.lostitem.entity.LostItemStatus;
+import com.whereisit.backend.lostitem.service.InitialSearchOrchestrator;
 import com.whereisit.backend.lostitem.service.LostItemService;
+import com.whereisit.backend.search.dto.SearchExecutionResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,9 +40,10 @@ import lombok.RequiredArgsConstructor;
 public class LostItemController {
 
 	private final LostItemService lostItemService;
+	private final InitialSearchOrchestrator initialSearchOrchestrator;
 
-	@Operation(summary = "API-05 분실물 등록", description = """
-			분실물 설명으로 SEARCHING 상태의 검색 건을 만들고 첫 USER 대화 메시지로 저장한다. 실제 검색은 하지 않는다(API-11).
+	@Operation(summary = "API-05 최초 분실물 검색", description = """
+			분실물 검색 건과 첫 USER 메시지를 저장한 뒤 AI 조건 추출, 공공데이터 조회, 후보 랭킹을 실행한다.
 			languageCode를 보내지 않으면 회원의 사용 언어를 쓴다.""")
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "등록 성공. Location 헤더에 상세 조회 경로"),
@@ -48,11 +51,11 @@ public class LostItemController {
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH_REQUIRED(토큰 없음), INVALID_TOKEN, TOKEN_EXPIRED")
 	})
 	@PostMapping
-	public ResponseEntity<ApiResponse<LostItemResponse>> create(
+	public ResponseEntity<ApiResponse<SearchExecutionResponse>> create(
 			@AuthenticationPrincipal Long memberId, @Valid @RequestBody CreateLostItemRequest request) {
-		LostItemResponse response = lostItemService.create(memberId, request);
+		SearchExecutionResponse response = initialSearchOrchestrator.createAndSearch(memberId, request);
 		return ResponseEntity.status(HttpStatus.CREATED)
-				.header("Location", "/api/lost-items/" + response.lostItemId())
+				.header("Location", "/api/lost-items/" + response.lostItem().lostItemId())
 				.body(ApiResponse.ok(response));
 	}
 
