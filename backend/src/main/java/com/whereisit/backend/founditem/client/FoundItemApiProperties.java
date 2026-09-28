@@ -20,4 +20,6 @@ public class FoundItemApiProperties {
 	private String policeFoundItemUrl = "https://apis.data.go.kr/1320000/LosfundInfoInqireService/getLosfundInfoAccToClAreaPd";
 
 	private String portalFoundItemUrl = "https://apis.data.go.kr/1320000/LosPtfundInfoInqireService/getPtLosfundInfoAccToClAreaPd";
+
+	private String portalNameStorageFoundItemUrl = "https://apis.data.go.kr/1320000/LosPtfundInfoInqireService/getPtLosfundInfoAccTpNmCstdyPlace";
 }

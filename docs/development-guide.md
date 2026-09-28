@@ -247,16 +247,30 @@ docker compose exec mysql mysql -u YOUR_DB_USERNAME -p where_is_it
 
 ## 8. OpenAI 자연어 검색조건 설정
 
-API-11의 INITIAL·TEXT 모드는 Backend에서 OpenAI Responses API를 호출해 분실 날짜·장소를 구조화하고 사용자 언어의 ASSISTANT 메시지를 생성합니다. API Key는 Frontend로 전달하지 않습니다.
+API-05 통합 검색은 Backend에서 OpenAI Responses API를 호출해 분실 날짜·장소, 물품명 검색어와 보관 장소 검색어를 구조화하고 사용자 언어의 ASSISTANT 메시지를 생성한 뒤, 포털기관 목록 2번 API 조회와 후보 랭킹까지 한 흐름에서 처리합니다. API Key는 Frontend로 전달하지 않습니다.
 
 | 환경변수 | 필수 여부 | 설명 |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | AI 호출 시 필수 | OpenAI 인증 Key. 코드·로그·응답에 기록하지 않습니다. |
-| `OPENAI_MODEL` | AI 호출 시 필수 | strict Structured Outputs를 지원하는 모델. 코드 기본값은 없습니다. |
+| `OPENAI_MODEL` | AI 호출 시 필수 | 기본 운영 모델은 `gpt-4o-mini`입니다. `.env.example`은 이 값을 예시로 제공하지만 Java 코드와 `application.yml`에는 기본값이 없습니다. |
 | `OPENAI_TIMEOUT` | 선택 | 연결·응답 제한시간. 기본값은 `10s`입니다. |
 
-Key 또는 model이 없어도 애플리케이션은 시작하지만 AI 기능 호출은 `AI_CONDITION_UNAVAILABLE`로 실패합니다. OpenAI와 경찰·포털 HTTP 호출은 DB 트랜잭션 밖에서 실행하며, 호출 전후의 USER 메시지·조건·후보 저장만 짧은 트랜잭션으로 처리합니다. OpenAI 호출은 자동 재시도하지 않습니다.
+Key 또는 model이 없어도 애플리케이션은 시작하지만 AI 기능 호출은 `AI_CONDITION_UNAVAILABLE`로 실패합니다. OpenAI와 포털기관 HTTP 호출은 DB 트랜잭션 밖에서 실행하며, USER 메시지는 외부 호출 전에 commit하고 AI 조건·ASSISTANT 메시지와 FoundItem 원본 캐시만 각각 짧은 트랜잭션으로 반영합니다. OpenAI 호출은 자동 재시도하지 않습니다.
 
 Timeout과 OpenAI HTTP 408·504는 `SEARCH_TIMEOUT`, HTTP 429는 `RATE_LIMITED`, 그 밖의 HTTP 오류·refusal·빈 응답·잘못된 JSON 또는 Schema 위반은 `AI_CONDITION_UNAVAILABLE`로 응답합니다.
 
 테스트는 Fake Port와 Spring HTTP Mock만 사용합니다. 테스트에서 실제 OpenAI Key·모델을 사용하거나 OpenAI·경찰청·포털기관 외부 네트워크를 호출하지 않습니다.
+
+### 후보 랭킹과 추천 이유
+
+포털기관 목록 2번 API(`getPtLosfundInfoAccTpNmCstdyPlace`)가 반환한 ItemList를 자연키 `(sourceType, atcId, fdSn)`로 중복 제거한 뒤 최대 100건만 OpenAI에 전달합니다. 이 API에는 공식 파라미터 `PRDT_NM`(물품명), `DEP_PLACE`(보관 장소), `pageNo`, `numOfRows`만 전달하며 날짜는 지원하지 않으므로 임의 query parameter로 보내지 않습니다. 100건을 넘으면 기존 규칙 기반 유사도 점수와 안정적인 동점 기준으로 먼저 축약하고 `RESULT_LIMIT_REACHED` warning을 반환합니다. OpenAI 입력에는 분실 설명·언어·기간·장소와 후보의 상품명·제목·분류·색상·습득일·보관장소만 포함하며, DB ID와 외부 관리번호는 요청 범위의 `c1` 형식 key로 대체합니다.
+
+API-05 내부 후보 랭킹도 Responses API, `store=false`, strict JSON Schema를 사용합니다. 추천 이유는 1~500 Unicode code point이고 한국어는 한글, 영어는 Latin 문자를 하나 이상 포함해야 합니다. 후보 key·순위·집합·추가 필드·중복 JSON key를 서버에서 다시 검증하며 최종 HTTP 요청 body가 128 KiB를 초과하면 호출하지 않습니다. Prompt와 OpenAI 응답 원문은 로그에 남기지 않습니다.
+
+후보가 없으면 OpenAI를 호출하지 않습니다. 후보 랭킹의 timeout과 HTTP 408·504는 `SEARCH_TIMEOUT`, HTTP 429는 `RATE_LIMITED`로 매핑합니다. Key/model 미설정, 그 밖의 HTTP 오류, refusal, incomplete, JSON·Schema·후보 검증 실패는 동일 후보 집합의 `SimpleTextSimilarityRanker` 결과로 fallback합니다. 이때 `rankingStatus=UNAVAILABLE`, `AI_RANKING_UNAVAILABLE` warning을 반환하고 기존 current 후보 캐시는 보존합니다. 검색조건 구조화 실패의 기존 오류 매핑은 그대로 유지하며 두 기능의 실패 정책을 혼합하지 않습니다. 자동 모델 fallback이나 자동 재시도는 사용하지 않습니다.
+
+포털기관 조회, 100건 사전 축약, OpenAI 랭킹은 DB 트랜잭션 밖에서 실행합니다. 응답 확정 직전 짧은 트랜잭션에서 분실물 row를 `PESSIMISTIC_WRITE`로 잠그고 snapshot을 다시 확인하며, 변경됐다면 `ITEM_BUSY`(409)를 반환합니다. 같은 잠금 범위에서는 Frontend 카드의 안정적인 `foundItemId`를 위한 FoundItem 외부 원본 캐시만 upsert합니다. API-05는 LostItemCandidate를 생성하거나 current/baseline을 변경하지 않습니다.
+
+API-05 응답은 `lookupStatus`, `rankingStatus`, `persisted`, `warnings`, `candidates`를 최상위에 두는 평면 계약을 유지합니다. `candidates`는 현재 Frontend 호환용 이름일 뿐 Candidate DB 저장을 뜻하지 않으며 `candidateId=null`, `isCurrent=false`, `isBaseline=false`, `persisted=false`입니다. `foundItem.openId`는 포털기관 `atcId`와 같고 `fdSn`은 문자열 원형을 보존합니다. 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지되어 새로고침 시 만료되며, 재검색하면 새 `lostItemId`가 생성될 수 있습니다. 결과 재조회 API와 Snapshot·중복 알림 정책은 후속 작업입니다.
+
+API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, API-16·17, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다. Issue #37 알림·Batch 코드가 main에 통합되면 CandidateResponse, LostItemCandidate, 후보 Repository 및 Notification 연동을 다시 검증합니다.

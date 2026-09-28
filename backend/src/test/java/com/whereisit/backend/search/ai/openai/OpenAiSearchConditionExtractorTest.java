@@ -60,7 +60,7 @@ class OpenAiSearchConditionExtractorTest {
 				.andExpect(content().string(Matchers.containsString("\"strict\":true")))
 				.andExpect(content().string(Matchers.containsString("\"additionalProperties\":false")))
 				.andExpect(content().string(Matchers.containsString(
-						"\"required\":[\"lostDateFrom\",\"lostDateTo\",\"lostPlaceText\",\"assistantMessage\"]")))
+						"\"required\":[\"lostDateFrom\",\"lostDateTo\",\"lostPlaceText\",\"productNameKeyword\",\"storagePlaceKeyword\",\"assistantMessage\"]")))
 				.andExpect(content().string(Matchers.not(Matchers.containsString("categoryLargeCode"))))
 				.andExpect(content().string(Matchers.not(Matchers.containsString("categoryMiddleCode"))))
 				.andExpect(content().string(Matchers.not(Matchers.containsString("colorCode"))))
@@ -82,6 +82,8 @@ class OpenAiSearchConditionExtractorTest {
 		assertThat(result.lostDateFrom()).isEqualTo(LocalDate.of(2026, 9, 20));
 		assertThat(result.lostDateTo()).isEqualTo(LocalDate.of(2026, 9, 21));
 		assertThat(result.lostPlaceText()).isEqualTo("서울역");
+		assertThat(result.productNameKeyword()).isEqualTo("지갑");
+		assertThat(result.storagePlaceKeyword()).isEqualTo("서울역 유실물센터");
 		assertThat(result.assistantMessage()).isEqualTo("조건을 반영했습니다.");
 		server.verify();
 	}
@@ -131,6 +133,8 @@ class OpenAiSearchConditionExtractorTest {
 				Arguments.of(response(output("not-a-date", null, null, "ok"))),
 				Arguments.of(response(output("2026-09-21", "2026-09-20", null, "ok"))),
 				Arguments.of(response(output(null, null, "x".repeat(256), "ok"))),
+				Arguments.of(response(output(null, null, null, " ", "서울역", "ok"))),
+				Arguments.of(response(output(null, null, null, "지갑", "x".repeat(201), "ok"))),
 				Arguments.of(response(output(null, null, null, " "))),
 				Arguments.of(response(output(null, null, null, "x".repeat(2001)))));
 	}
@@ -215,8 +219,16 @@ class OpenAiSearchConditionExtractorTest {
 	}
 
 	private static String output(String from, String to, String place, String message) {
+		return output(from, to, place, "지갑", "서울역 유실물센터", message);
+	}
+
+	private static String output(String from, String to, String place, String productNameKeyword,
+			String storagePlaceKeyword, String message) {
 		return "{\"lostDateFrom\":" + json(from) + ",\"lostDateTo\":" + json(to)
-				+ ",\"lostPlaceText\":" + json(place) + ",\"assistantMessage\":" + json(message) + "}";
+				+ ",\"lostPlaceText\":" + json(place)
+				+ ",\"productNameKeyword\":" + json(productNameKeyword)
+				+ ",\"storagePlaceKeyword\":" + json(storagePlaceKeyword)
+				+ ",\"assistantMessage\":" + json(message) + "}";
 	}
 
 	private static String json(String value) {

@@ -22,9 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.whereisit.backend.candidate.repository.LostItemCandidateRepository;
+import com.whereisit.backend.candidate.ranking.CandidateRanker;
+import com.whereisit.backend.candidate.ranking.CandidateRankingRequest;
+import com.whereisit.backend.candidate.ranking.CandidateRankingResult;
+import com.whereisit.backend.candidate.ranking.RankedCandidate;
 import com.whereisit.backend.founditem.client.FoundItemListEntry;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
 import com.whereisit.backend.founditem.client.FoundItemLookupException;
+import com.whereisit.backend.founditem.client.PortalFoundItemNameStorageClient;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
@@ -48,15 +53,23 @@ class SearchExecutionApiTest extends ApiTestSupport {
 	private FoundItemLookupClient portalClient;
 
 	@MockitoBean
+	private PortalFoundItemNameStorageClient portalNameStorageClient;
+
+	@MockitoBean
 	private AiSearchConditionExtractor aiSearchConditionExtractor;
+
+	@MockitoBean
+	private CandidateRanker candidateRanker;
 
 	@Autowired
 	private LostItemCandidateRepository candidateRepository;
 
 	@BeforeEach
 	void mockAi() {
+		when(portalNameStorageClient.search(any())).thenReturn(List.of());
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(
 				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
+		when(candidateRanker.rank(any())).thenAnswer(invocation -> successfulRanking(invocation.getArgument(0)));
 	}
 
 	@Test
@@ -148,6 +161,15 @@ class SearchExecutionApiTest extends ApiTestSupport {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenReturn(policeResults);
 		when(portalClient.search(any())).thenReturn(portalResults);
+	}
+
+	private CandidateRankingResult successfulRanking(CandidateRankingRequest request) {
+		List<RankedCandidate> ranked = new java.util.ArrayList<>();
+		for (int i = 0; i < request.candidates().size(); i++) {
+			ranked.add(new RankedCandidate(request.candidates().get(i).candidateKey(), i + 1,
+					"legacy ranking " + (i + 1), true));
+		}
+		return CandidateRankingResult.success(ranked);
 	}
 
 	private String createLostItem(String accessToken, String description) throws Exception {

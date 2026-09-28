@@ -9,50 +9,59 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import com.whereisit.backend.founditem.entity.FoundItem;
-
-/**
- * AI 없이 키워드 겹침만으로 순위를 매기는 임시 구현. 분실물 설명과 습득물의 물품명·게시제목·분류명·색상명을
- * 토큰으로 나눠 겹치는 단어 수를 점수로 쓴다. 겹치는 단어가 하나도 없으면 유사 후보로 보지 않는다(isSimilar=false).
- */
+/** OpenAI 실패 fallback과 후보 사전 축약에 사용하는 규칙 기반 랭커. */
 @Component
 public class SimpleTextSimilarityRanker implements CandidateRanker {
 
 	private static final Pattern TOKEN_DELIMITER = Pattern.compile("[^\\p{IsAlphabetic}\\p{Digit}]+");
 
 	@Override
-	public List<RankedCandidate> rank(String description, List<FoundItem> foundItems) {
-		Set<String> descriptionTokens = tokenize(description);
-
-		List<Scored> scored = foundItems.stream()
-				.map(item -> score(descriptionTokens, item))
-				.sorted(Comparator.comparingInt(Scored::score).reversed()
-						.thenComparing(s -> s.item().getId()))
-				.toList();
+	public CandidateRankingResult rank(CandidateRankingRequest request) {
+		Set<String> descriptionTokens = tokenize(request.description());
+		List<Scored> scored = new ArrayList<>();
+		for (int i = 0; i < request.candidates().size(); i++) {
+			scored.add(score(descriptionTokens, request.candidates().get(i), i));
+		}
+		scored.sort(Comparator.comparingInt(Scored::score).reversed()
+				.thenComparingInt(Scored::originalIndex));
 
 		List<RankedCandidate> ranked = new ArrayList<>(scored.size());
 		for (int i = 0; i < scored.size(); i++) {
-			ranked.add(toRankedCandidate(scored.get(i), i + 1));
+			ranked.add(toRankedCandidate(scored.get(i), i + 1, request.languageCode()));
 		}
-		return ranked;
+		return CandidateRankingResult.unavailable(ranked);
 	}
 
-	private Scored score(Set<String> descriptionTokens, FoundItem item) {
-		Set<String> itemTokens = tokenize(String.join(" ",
-				nullToEmpty(item.getProductName()), nullToEmpty(item.getSubject()),
-				nullToEmpty(item.getCategoryName()), nullToEmpty(item.getColorName())));
+	/** 사전 축약 정렬의 첫 번째 기준인 규칙 점수. */
+	public int similarityScore(String description, CandidateRankingInput item) {
+		return score(tokenize(description), item, 0).score();
+	}
 
+	private Scored score(Set<String> descriptionTokens, CandidateRankingInput item, int originalIndex) {
+		Set<String> itemTokens = tokenize(String.join(" ",
+				nullToEmpty(item.productName()), nullToEmpty(item.subject()),
+				nullToEmpty(item.categoryName()), nullToEmpty(item.colorName()),
+				nullToEmpty(item.storagePlace())));
 		Set<String> matched = new LinkedHashSet<>(descriptionTokens);
 		matched.retainAll(itemTokens);
-		return new Scored(item, matched);
+		return new Scored(item, matched, originalIndex);
 	}
 
-	private RankedCandidate toRankedCandidate(Scored scored, int rank) {
+	private RankedCandidate toRankedCandidate(Scored scored, int rank, String languageCode) {
 		boolean similar = !scored.matched().isEmpty();
-		String reason = similar
-				? "설명과 겹치는 단어: " + String.join(", ", scored.matched())
-				: "설명과 겹치는 단어를 찾지 못했습니다.";
-		return new RankedCandidate(scored.item(), rank, reason, similar);
+		String reason;
+		if ("en".equals(languageCode)) {
+			reason = similar
+					? "Matching description terms: " + String.join(", ", scored.matched())
+					: "No matching description terms were found.";
+		}
+		else {
+			reason = similar
+					? "설명과 겹치는 단어: " + String.join(", ", scored.matched())
+					: "설명과 겹치는 단어를 찾지 못했습니다.";
+		}
+		return new RankedCandidate(scored.item().candidateKey(), rank,
+				CandidateRankingInput.truncate(reason, 500), similar);
 	}
 
 	private Set<String> tokenize(String text) {
@@ -72,7 +81,7 @@ public class SimpleTextSimilarityRanker implements CandidateRanker {
 		return value == null ? "" : value;
 	}
 
-	private record Scored(FoundItem item, Set<String> matched) {
+	private record Scored(CandidateRankingInput item, Set<String> matched, int originalIndex) {
 		int score() {
 			return matched.size();
 		}

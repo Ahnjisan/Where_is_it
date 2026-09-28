@@ -22,4 +22,13 @@ public class FoundItemClientConfig {
 		return new FoundItemLookupClient(builder,
 				properties.getPortalFoundItemUrl(), properties.getServiceKey(), "CLR_CD", FoundItemSourceType.PORTAL);
 	}
+
+	@Bean
+	public PortalFoundItemNameStorageClient portalFoundItemNameStorageClient(
+			RestClient.Builder builder, FoundItemApiProperties properties) {
+		FoundItemLookupClient delegate = new FoundItemLookupClient(builder,
+				properties.getPortalNameStorageFoundItemUrl(), properties.getServiceKey(),
+				"CLR_CD", FoundItemSourceType.PORTAL);
+		return new PortalFoundItemNameStorageClient(delegate);
+	}
 }

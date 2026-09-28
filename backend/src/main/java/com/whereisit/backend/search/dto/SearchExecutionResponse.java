@@ -6,14 +6,20 @@ import com.whereisit.backend.candidate.dto.CandidateResponse;
 import com.whereisit.backend.lostitem.dto.ChatMessageResponse;
 import com.whereisit.backend.lostitem.dto.LostItemResponse;
 
-/**
- * API 명세 v2 05_응답필드 SearchData를 단순화한 응답.
- * lookup을 LookupSummary 전체(소스별 SourceStatus 배열 등) 대신 lookupStatus·warnings로 줄였다(PR 설명 참고).
- */
+/** API-05 통합 검색 응답. Issue #67의 평면 응답 계약을 유지한다. */
 public record SearchExecutionResponse(
 		LostItemResponse lostItem,
 		ChatMessageResponse assistantMessage,
 		String lookupStatus,
+		String rankingStatus,
+		boolean persisted,
 		List<String> warnings,
-		List<CandidateResponse> candidates) {
+		List<CandidateResponse> candidates,
+		List<String> clarificationQuestions) {
+
+	public SearchExecutionResponse {
+		warnings = List.copyOf(warnings);
+		candidates = List.copyOf(candidates);
+		clarificationQuestions = List.copyOf(clarificationQuestions);
+	}
 }

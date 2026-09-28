@@ -10,6 +10,7 @@ public record FoundItemResponse(
 		String foundItemId,
 		String sourceType,
 		String atcId,
+		String openId,
 		String fdSn,
 		String productName,
 		String subject,
@@ -29,6 +30,7 @@ public record FoundItemResponse(
 		return new FoundItemResponse(
 				String.valueOf(foundItem.getId()),
 				foundItem.getSourceType().name(),
+				foundItem.getAtcId(),
 				foundItem.getAtcId(),
 				foundItem.getFdSn(),
 				foundItem.getProductName(),

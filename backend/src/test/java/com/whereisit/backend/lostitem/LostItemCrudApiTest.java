@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.whereisit.backend.founditem.client.FoundItemLookupClient;
+import com.whereisit.backend.founditem.client.PortalFoundItemNameStorageClient;
 import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
@@ -45,6 +46,9 @@ class LostItemCrudApiTest extends ApiTestSupport {
 	private FoundItemLookupClient portalClient;
 
 	@MockitoBean
+	private PortalFoundItemNameStorageClient portalNameStorageClient;
+
+	@MockitoBean
 	private AiSearchConditionExtractor aiSearchConditionExtractor;
 
 	@BeforeEach
@@ -53,6 +57,7 @@ class LostItemCrudApiTest extends ApiTestSupport {
 		when(portalClient.sourceType()).thenReturn(FoundItemSourceType.PORTAL);
 		when(policeClient.search(any())).thenReturn(List.of());
 		when(portalClient.search(any())).thenReturn(List.of());
+		when(portalNameStorageClient.search(any())).thenReturn(List.of());
 		when(aiSearchConditionExtractor.extract(any())).thenReturn(
 				new AiSearchConditionExtractionResult(null, null, null, "검색 조건을 확인했습니다."));
 	}

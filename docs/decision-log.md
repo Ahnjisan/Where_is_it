@@ -39,16 +39,21 @@
 | Refresh Token 키 정책 | `refresh_tokens.member_id`는 FK이며 단독 UNIQUE가 아님. `token_hash`는 UNIQUE이고 `(member_id, expires_at)`은 비고유 INDEX이며 회원별 복수 기기 세션 허용 |
 | 인증 방식 | 이메일·비밀번호 회원가입과 로그인. Spring Security와 JWT(HS256)를 사용하고 AT는 `Authorization: Bearer`로 전달. AT 30분, RT 14일. RT도 JWT이며 로그인마다 기기별로 발급하고 DB에는 SHA-256 해시만 저장. 비밀번호는 BCrypt 해시로 저장. 서명 키는 환경변수 `JWT_SECRET` |
 | AI 검색조건 구조화 | OpenAI Responses API를 사용하고 `store=false`와 strict Structured Outputs를 적용. 모델은 기본값 없이 `OPENAI_MODEL`, Key는 `OPENAI_API_KEY`로 Backend에만 주입 |
-| AI 구조화 출력 범위 | `lostDateFrom`, `lostDateTo`, `lostPlaceText`, `assistantMessage`만 허용. 공통코드·내부 ID·상태·추적·이메일 필드는 생성하거나 변경하지 않음 |
-| AI 검색 트랜잭션 | TEXT USER 메시지를 먼저 commit하고 OpenAI 및 습득물 외부 호출은 DB 트랜잭션 밖에서 실행. 성공 결과와 후보만 별도 짧은 트랜잭션으로 저장 |
-| 후보 랭킹 AI | Issue #56에서는 기존 `CandidateRanker`를 유지하며 OpenAI 후보 순위·추천 이유 생성은 Issue #57로 분리 |
+| AI 구조화 출력 범위 | `lostDateFrom`, `lostDateTo`, `lostPlaceText`, `productNameKeyword`, `storagePlaceKeyword`, `assistantMessage`만 허용. `lostPlaceText`는 분실 장소, `storagePlaceKeyword`는 포털기관 보관 장소 검색어로 구분하며 공통코드·내부 ID·상태·추적·이메일 필드는 생성하거나 변경하지 않음 |
+| AI 검색 트랜잭션 | API-05 USER 메시지를 먼저 commit하고 OpenAI 및 포털기관 외부 호출은 DB 트랜잭션 밖에서 실행. AI 조건·ASSISTANT 메시지와 FoundItem 원본 캐시만 별도 짧은 트랜잭션으로 반영 |
+| 후보 랭킹 AI | API-05 통합 검색 내부에서 포털기관 목록 2번 API가 반환한 ItemList만 OpenAI Responses API로 비교. 검증된 `rank`·`reason`은 transient 응답으로 반환하고 LostItemCandidate/current/baseline 관계는 저장하지 않음. timeout·HTTP 408·504는 `SEARCH_TIMEOUT`, HTTP 429는 `RATE_LIMITED`로 매핑하며, 그 밖의 AI 랭킹 실패는 동일 후보 집합의 규칙 기반 결과로 fallback |
+| AI 입력 개인정보 최소화 | 분실 설명·언어·검색 기간·장소와 랭킹에 필요한 후보 표시 필드만 전달. 회원·분실물·후보 DB ID, 이메일·전화번호·알림 ID, 외부 관리번호, 인증정보는 전달하지 않고 요청 범위 `candidateKey`만 사용 |
+| 후보 랭킹 트랜잭션 | 포털기관 조회, 규칙 기반 사전 축약, OpenAI 후보 랭킹은 DB 트랜잭션 밖에서 실행. 마지막 짧은 트랜잭션에서 분실물 row를 PESSIMISTIC_WRITE로 잠그고 Snapshot을 재검증한 뒤 응답용 FoundItem 원본 캐시만 upsert |
+| API-05 결과 수명 | 검색 결과는 API-05 응답과 Frontend 메모리 Context에서만 유지. `candidates`는 현재 Frontend 호환용 JSON 이름이며 Candidate DB 저장을 의미하지 않고 `candidateId=null`, `persisted=false`를 반환. 새로고침·직접 URL 접근·과거 결과 재조회와 결과 Snapshot 정책은 후속 작업 |
+| 후보 랭킹 테스트 | 실제 OpenAI·경찰·포털 네트워크 없이 Mock/Fake로 정상·fallback·Schema/후보 변조·Transaction 경계를 검증 |
+| Issue #37 통합 경계 | 현재 main에는 Issue #37 알림·Batch 구현이 없다. 향후 main 통합 시 `CandidateResponse`, `LostItemCandidate`, 후보 Repository와 Notification 연동을 재검증한다 |
+| 외부 식별자와 후속 API 경계 | `lostItemId`는 내부 검색 건 ID, `openId=atcId`이며 `fdSn`과 함께 상세조회 식별자이다. API-07, 추적 API-16·17, `GET /api/lost-items/{lostItemId}/results`는 후속 작업으로 분리하며 Issue #57은 API-11~15를 공개 흐름으로 다시 활성화하지 않음 |
 | API 문서화 | springdoc-openapi 2.8.x(Spring Boot 3.5 호환)로 Swagger UI(`/swagger-ui.html`)와 OpenAPI JSON(`/v3/api-docs`)을 제공. 문서 경로는 인증 없이 조회 가능하며, 운영 환경 노출 여부는 배포 환경 결정 시 정함 |
 
 ## 미결정 항목
 
 | 항목 | 상태 |
 | --- | --- |
-| AI API 제공자와 모델 | OpenAI Responses API로 확정. 실제 모델은 환경변수 `OPENAI_MODEL`로 운영 환경에서 선택 |
 | 이메일 발송 서비스 | 미결정 |
 | 외부 API 잔여 계약 | 일반·포털 상세 API 계약과 필드 매핑은 확인됨. 공통코드 실제 계약·코드표와 일반 정상 빈 결과·별도 오류 봉투 세부 구조는 미확정 |
 | Database 전체 구조와 세부 구현 | 미결정 |
@@ -71,3 +76,5 @@
 | 2026-09-26 | 습득물 외부 API 실호출 검증 | 일반·포털 습득물 목록·상세 API 실제 호출 성공. 목록 `depPlace` → `storage_place`, 상세 `fdPlace` → `found_place`, `tel` → `storage_phone`, `uniq` → `description` 매핑을 확정. 실제 응답은 `application/xml`, 정상 XML Namespace 없음, 목록·상세 모두 `body/items/item`. NULL 정책은 기존대로 유지. 경찰민원24 개편은 2026-09-26 실제 호출 기준 일반·포털 목록·상세 연동 영향이 확인되지 않음. 공통코드 API는 승인대기로 별도 검증이 필요하며, 일반 정상 빈 결과와 별도 오류 봉투 세부 구조는 미확정 | Issue #41 | 안지산 |
 | 2026-09-27 | OpenAI 자연어 검색조건 구조화 | OpenAI Responses API, `store=false`, 환경변수 model, strict Structured Outputs를 확정. TEXT USER 메시지는 외부 호출 전에 저장하고 OpenAI·습득물 HTTP 호출은 DB 트랜잭션 밖에서 수행. 출력은 날짜·장소·ASSISTANT 메시지로 제한하고 후보 랭킹은 Issue #57로 분리 | Issue #56 | 안지산 |
 | 2026-09-28 | API 문서화 | springdoc-openapi 2.8.17로 Swagger UI·OpenAPI JSON 제공. 문서 경로(`/swagger-ui/**`, `/v3/api-docs/**`)는 GET만 인증 없이 허용 | Issue #62 | PR 승인 후 기재 |
+| 2026-09-28 | OpenAI 후보 랭킹과 추천 이유 | API-05 내부에서 포털기관 목록 2번 API의 ItemList를 요청 범위 `candidateKey`로만 전달하고, 최대 100건·128 KiB·`store=false`·strict JSON Schema 및 서버 재검증을 적용. 성공·fallback 모두 transient 결과이며 LostItemCandidate/current/baseline 관계는 저장하지 않고 응답용 FoundItem 원본 캐시만 upsert. 자동 재시도와 자동 모델 fallback은 사용하지 않음 | Issue #57 | 안지산 |
+| 2026-09-28 | OpenAI 모델 | Responses API와 strict Structured Outputs 지원, 비용·속도, 구조화 추출·후보 랭킹 적합성을 근거로 `gpt-4o-mini`를 확정. 모델은 `OPENAI_MODEL`로만 주입하고 Java와 `application.yml`에는 기본값을 두지 않음 | Issue #57 모델 결정 | 안지산 |
