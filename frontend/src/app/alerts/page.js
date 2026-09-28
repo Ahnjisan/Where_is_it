@@ -51,7 +51,6 @@ export default function AlertsPage() {
             {t.alertsTitle}
           </h1>
         </div>
-        <span className="text-xs text-[#85132d] font-bold">{t.alertsUnread} 2{t.alertsCount}</span>
       </header>
 
       <div className="p-4 space-y-2.5">

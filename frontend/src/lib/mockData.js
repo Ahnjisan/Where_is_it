@@ -267,7 +267,7 @@ export const I18N = {
     // 메인
     mainQuestion: "어떤 물건을 잃어버리셨나요?",
     mainSub:
-      "자연어로 자유롭게 설명해 주세요.\nAI가 한국의 습득물 정보를 찾아드립니다.",
+      "자연어로 자유롭게 설명해 주세요.\nAI가 당신의 분실물을 찾아드립니다.",
     examplePromptLabel: "예시로 질문해보세요",
     searchPlaceholder: "잃어버린 물건에 대해 자세히 설명해 주세요...",
     enterToSearch: "Enter를 눌러 검색",
@@ -380,7 +380,7 @@ export const I18N = {
     // 메인
     mainQuestion: "What did you lose?",
     mainSub:
-      "Describe it naturally in your own words.\nAI searches found item records across Korea.",
+      "Describe it naturally in your own words.\nAI will find your lost item.",
     examplePromptLabel: "Try asking like this",
     searchPlaceholder: "Please describe what you lost in detail...",
     enterToSearch: "Press Enter to search",

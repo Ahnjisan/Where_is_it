@@ -34,10 +34,6 @@ export default function MainSearchView({
     }
   };
 
-  const handleChipClick = (promptText) => {
-    setQuery(promptText);
-    onSearch(promptText);
-  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -70,17 +66,12 @@ export default function MainSearchView({
         </span>
         <div className="flex flex-col gap-2.5">
           {EXAMPLE_PROMPTS.map((prompt, index) => (
-            <button
+            <div
               key={index}
-              type="button"
-              onClick={() => handleChipClick(prompt)}
-              className="w-full text-left px-4 py-3 rounded-2xl bg-white hover:bg-[#fff1f3] border border-gray-200/80 hover:border-[#fecdd3] text-xs sm:text-sm font-medium text-gray-700 hover:text-[#85132d] shadow-sm transition-all duration-200 active:scale-[0.99] flex items-center justify-between group"
+              className="w-full text-left px-4 py-3 rounded-2xl bg-gray-50/80 border border-gray-200/50 text-xs sm:text-sm font-medium text-gray-600 flex items-center"
             >
               <span className="truncate">"{prompt}"</span>
-              <span className="text-gray-300 group-hover:text-[#85132d] text-xs transition-colors">
-                →
-              </span>
-            </button>
+            </div>
           ))}
         </div>
       </div>

@@ -146,7 +146,6 @@ export default function MyPage() {
               <Shield className="w-4 h-4 text-gray-400" />
               <span>{t.myPrivacy}</span>
             </div>
-            <span className="text-gray-400 text-xs">{t.myView}</span>
           </div>
         </div>
       </div>
