@@ -16,6 +16,7 @@ import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
 import { lostItemApi } from "@/lib/api";
 import { adaptSearchCandidates } from "@/lib/searchCandidateAdapter";
+import { lostItemApi } from "@/lib/api";
 
 function ItemThumbnail({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -45,16 +46,7 @@ function SearchResultsContent() {
   const initialQuery = searchParams.get("q") || "";
   const lostItemIdFromUrl = searchParams.get("lostItemId");
 
-  const {
-    lang,
-    t,
-    user,
-    logoutUser,
-    searchExecution,
-    setSearchExecution,
-    addTracking,
-    showToast,
-  } = useApp();
+  const { lang, t, user, logoutUser, searchExecution, setSearchExecution, addTracking, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortMode, setSortMode] = useState("recommend"); // "recommend" | "latest"
@@ -245,34 +237,26 @@ function SearchResultsContent() {
     return true;
   };
 
-  const handleRegisterTrackingClick = () => {
-    const title = searchQuery
-      ? searchQuery.slice(0, 20)
-      : filters.category && filters.category !== "전체"
-        ? `${filters.category} 분실물`
-        : "분실물 추적";
+  const handleRegisterTrackingClick = async () => {
+    if (!user?.accessToken) {
+      showToast(lang === "ko" ? "로그인이 필요합니다." : "Login required.", "error");
+      return;
+    }
 
-    const prompt = searchQuery
-      ? searchQuery
-      : `${filters.category && filters.category !== "전체" ? `[${filters.category}]` : ""} ${filters.color || ""} 분실물 실시간 매칭 요청`;
-
-    addTracking({
-      title,
-      prompt,
-      category:
-        filters.category && filters.category !== "전체"
-          ? filters.category
-          : "기타",
-      color: filters.color || "미지정",
-      location:
-        filters.location && filters.location !== "전체"
-          ? filters.location
-          : "알 수 없음",
-    });
-
-    setTimeout(() => {
-      router.push("/tracking");
-    }, 500);
+    try {
+      if (searchExecution?.lostItem?.lostItemId) {
+        await lostItemApi.activateTracking(searchExecution.lostItem.lostItemId, user.accessToken);
+        showToast(lang === "ko" ? "추적이 등록되었습니다." : "Tracking registered successfully.", "success");
+        setTimeout(() => {
+          router.push("/tracking");
+        }, 500);
+      } else {
+        showToast(lang === "ko" ? "추적을 등록할 분실물 정보가 없습니다." : "No lost item info to track.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || (lang === "ko" ? "추적 등록에 실패했습니다." : "Failed to register tracking."), "error");
+    }
   };
 
   if (isLoadingDetail) {
