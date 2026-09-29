@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -10,28 +10,97 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { lostItemApi } from "@/lib/api";
 
 export default function TrackingPage() {
   const router = useRouter();
-  const { lang, setLang, t, trackingData, stopTracking } = useApp();
+  const { lang, setLang, t, user, stopTracking, showToast } = useApp();
 
   const [activeTab, setActiveTab] = useState("active");
   const [itemToConfirm, setItemToConfirm] = useState(null);
 
-  const activeList = trackingData.active || [];
-  const completedList = trackingData.completed || [];
+  const [activeList, setActiveList] = useState([]);
+  const [completedList, setCompletedList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrackedItems = async () => {
+      if (!user?.accessToken) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const data = await lostItemApi.getMyTrackedItems(user.accessToken, 0, 50);
+        
+        if (data && data.items) {
+          const mappedItems = data.items.map(item => {
+            const endDate = item.expiresAt ? new Date(item.expiresAt) : null;
+            let dDayText = "";
+            if (endDate) {
+               const diffTime = endDate - new Date();
+               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+               dDayText = diffDays > 0 ? `D-${diffDays}` : diffDays === 0 ? "D-Day" : "";
+            }
+            return {
+              id: item.lostItemId,
+              title: item.description ? (item.description.length > 20 ? item.description.slice(0, 20) + "..." : item.description) : "분실물 추적",
+              prompt: item.description,
+              category: item.conditions?.categoryLargeCode || "기타",
+              color: item.conditions?.colorCode || "미지정",
+              candidatesCount: item.currentCandidateCount || 0,
+              statusText: item.status,
+              registeredDate: item.createdAt ? item.createdAt.substring(0, 10) : "",
+              endDate: item.expiresAt ? item.expiresAt.substring(0, 10) : "",
+              dDay: dDayText,
+              status: item.status
+            };
+          });
+
+          const active = mappedItems.filter(item => item.status === 'TRACKING');
+          const completed = mappedItems.filter(item => item.status === 'EXPIRED');
+          
+          setActiveList(active);
+          setCompletedList(completed);
+        }
+      } catch (err) {
+        showToast(lang === "ko" ? "추적 목록을 가져오는데 실패했습니다." : "Failed to fetch tracking list.", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrackedItems();
+  }, [user?.accessToken, lang, showToast]);
+
   const currentList = activeTab === "active" ? activeList : completedList;
 
   const handleCandidateClick = (item) => {
-    // 키워드 기반으로 /search 검색 페이지 연동
     const query = item.title || item.name || item.category;
     router.push(`/search?q=${encodeURIComponent(query)}`);
   };
 
   const getStatusText = (status) => {
-    if (lang !== "en") return status || t.statusEnded;
-    if (status === "기한 만료") return t.statusExpired;
+    if (lang !== "en") return status === 'EXPIRED' ? "기한 만료" : "진행 중";
+    if (status === 'EXPIRED') return t.statusExpired;
     return t.statusEnded;
+  };
+
+  const handleStopTracking = async () => {
+    if (!itemToConfirm || !user?.accessToken) return;
+    try {
+      await lostItemApi.stopTracking(itemToConfirm.id, user.accessToken);
+      
+      const itemToMove = activeList.find(i => i.id === itemToConfirm.id);
+      if (itemToMove) {
+        setActiveList(prev => prev.filter(i => i.id !== itemToConfirm.id));
+        setCompletedList(prev => [{...itemToMove, status: 'EXPIRED', statusText: 'EXPIRED', endDate: new Date().toISOString().substring(0, 10)}, ...prev]);
+      }
+      showToast(lang === "ko" ? "추적이 종료되었습니다. (종료됨으로 이동)" : "Tracking has ended.", "info");
+    } catch (err) {
+      showToast(lang === "ko" ? "추적 종료에 실패했습니다." : "Failed to end tracking.", "error");
+    } finally {
+      setItemToConfirm(null);
+    }
   };
 
   return (
@@ -236,10 +305,7 @@ export default function TrackingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  stopTracking(itemToConfirm.id);
-                  setItemToConfirm(null);
-                }}
+                onClick={handleStopTracking}
                 className="flex-1 py-3 px-4 rounded-xl bg-[#85132d] hover:bg-[#6e0f25] text-white font-bold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs active:scale-95"
               >
                 {t.confirmEndBtn}

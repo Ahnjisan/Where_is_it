@@ -98,6 +98,57 @@ export const lostItemApi = {
 
     return response.data;
   },
+  activateTracking: async (lostItemId, accessToken) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch(`/lost-items/${lostItemId}/tracking`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      }
+    });
+
+    return response.data;
+  },
+  getMyTrackedItems: async (accessToken, page = 0, size = 20) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch(`/members/me/lost-items?page=${page}&size=${size}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      }
+    });
+
+    return response.data;
+  },
+  stopTracking: async (lostItemId, accessToken) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch(`/lost-items/${lostItemId}/tracking/stop`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      }
+    });
+
+    return response.data;
+  }
 };
 
 export const memberApi = {
