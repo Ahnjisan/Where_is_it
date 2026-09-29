@@ -41,6 +41,11 @@ export default function TrackingPage() {
         const data = await lostItemApi.getMyTrackedItems(user.accessToken, 0, 50);
         
         if (data && data.items) {
+          // Mocking candidates count for the first item
+          if (data.items.length > 0) {
+            data.items[0].currentCandidateCount = 3;
+          }
+          
           const mappedItems = data.items.map(item => {
             const endDate = item.expiresAt ? new Date(item.expiresAt) : null;
             let dDayText = "";
@@ -82,8 +87,7 @@ export default function TrackingPage() {
   const currentList = activeTab === "active" ? activeList : completedList;
 
   const handleCandidateClick = (item) => {
-    const query = item.title || item.name || item.category;
-    router.push(`/search?q=${encodeURIComponent(query)}`);
+    router.push(`/tracking/${item.id}/candidates`);
   };
 
   const getStatusText = (status) => {
