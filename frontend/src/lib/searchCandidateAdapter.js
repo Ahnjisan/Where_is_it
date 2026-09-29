@@ -14,11 +14,6 @@ export const adaptSearchCandidate = (candidate = {}) => {
     matchRate = candidate.matchRate;
   } else if (Number.isFinite(candidate.score)) {
     matchRate = candidate.score;
-  } else if (rank != null && rank > 0) {
-    matchRate = Math.max(60, 96 - (rank - 1) * 4);
-    if (candidate.isSimilar === false) {
-      matchRate = Math.max(50, matchRate - 15);
-    }
   }
 
   return {
