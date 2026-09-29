@@ -298,6 +298,7 @@ API-16 `GET /api/members/me/lost-items`는 로그인 회원의 추적 등록 건
 | 새 후보 | 이 분실물에 처음 나타난 습득물입니다. 새 후보가 있으면 `(lost_item_id, notification_date)`당 이메일_알림 1건을 만들고 분실물의 사용 언어로 발송합니다. |
 | 발송 결과 | 성공은 `SENT`, 실패는 `FAILED`와 오류 코드(예외 클래스 이름)로 기록합니다. `SENT`는 메일 제공자 접수를 뜻하며 수신·열람을 보장하지 않습니다. |
 | 알림 이력 | API-15 `GET /api/lost-items/{lostItemId}/notifications`로 조회합니다. |
+| 추적 종료 | API-21 `POST /api/lost-items/{lostItemId}/tracking/stop`. TRACKING 건을 EXPIRED로 바꾸고 시작·만료 시각은 유지합니다. 이미 EXPIRED이거나 만료 시각이 지난 건은 200, SEARCHING은 `TRACKING_NOT_STARTED`(409)입니다. 종료한 건은 일일 배치 대상에서 빠지고 다시 추적 등록할 수 없습니다. 종료일은 `updatedAt`과 `expiresAt` 중 이른 값입니다. |
 
 포털기관 조회와 메일 발송은 DB 트랜잭션 밖에서 실행합니다.
 
