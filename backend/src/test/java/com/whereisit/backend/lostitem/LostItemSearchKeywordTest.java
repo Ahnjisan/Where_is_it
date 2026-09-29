@@ -44,4 +44,29 @@ class LostItemSearchKeywordTest {
 
 		assertThat(lostItem.getSearchStartDate()).isEqualTo(LocalDate.of(2026, 9, 20));
 	}
+
+	@Test
+	@DisplayName("Issue #99: 표시용 색상명은 공식 색상 코드와 따로 저장하고, 없거나 쓸 수 없는 값(공백·100자 초과)은 예외 없이 null이다")
+	void storesDisplayColorNameSeparatelyFromColorCode() {
+		LostItem lostItem = newLostItem();
+		assertThat(lostItem.getColorName()).isNull();
+
+		lostItem.updateColorName(null);
+		assertThat(lostItem.getColorName()).isNull();
+
+		lostItem.updateColorName("검정");
+		assertThat(lostItem.getColorName()).isEqualTo("검정");
+		assertThat(lostItem.getColorCode()).isNull();
+
+		lostItem.updateColorName("가".repeat(100));
+		assertThat(lostItem.getColorName()).hasSize(100);
+
+		for (String unusable : new String[] {"", "   ", "가".repeat(101)}) {
+			lostItem.updateColorName("검정");
+			lostItem.updateColorName(unusable);
+			assertThat(lostItem.getColorName()).isNull();
+		}
+		lostItem.updateColorName(" 파랑 ");
+		assertThat(lostItem.getColorName()).isEqualTo("파랑");
+	}
 }

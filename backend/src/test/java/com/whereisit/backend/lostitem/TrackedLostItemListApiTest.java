@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,8 @@ import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.support.ApiTestSupport;
 
+import jakarta.persistence.EntityManagerFactory;
+
 /**
  * Issue #92 API-16 내 추적 분실물 목록. API-05·17은 요청마다 트랜잭션을 따로 열고 닫으므로 테스트 트랜잭션으로
  * 감싸지 않고, 데이터는 전후에 SQL로 지운다. 외부 연동(AI·공공데이터·메일)은 모두 Mock이라 실제로 호출하지 않는다.
@@ -63,11 +67,16 @@ class TrackedLostItemListApiTest extends ApiTestSupport {
 
 	private static final String URL = "/api/members/me/lost-items";
 
-	/** LostItemPageResponse·LostItemResponse의 JSON 키. DTO를 재사용하므로 API-06과 같아야 한다. */
+	/** 페이지·항목의 최상위 JSON 키. API-16 전용 DTO(Issue #99)도 API-06(LostItemPage·LostItem)과 같아야 한다. */
 	private static final Set<String> PAGE_FIELDS = Set.of("items", "page", "size", "totalElements", "totalPages");
 	private static final Set<String> ITEM_FIELDS = Set.of("lostItemId", "description", "languageCode", "conditions",
 			"status", "notificationEmail", "startedAt", "expiresAt", "lastAutoSearchDate", "currentCandidateCount",
 			"createdAt", "updatedAt", "currentCandidate");
+	/** 공유 SearchConditions의 JSON 키. API-16 이외 API는 이 계약을 그대로 유지해야 한다. */
+	private static final Set<String> CONDITION_FIELDS = Set.of("categoryLargeCode", "categoryMiddleCode", "colorCode",
+			"regionCode", "lostDateFrom", "lostDateTo", "lostPlaceText", "searchStartDate");
+	/** API-16 전용 conditions의 JSON 키. 공유 8개에 등록 물품 표시값 2개만 더한다. */
+	private static final Set<String> TRACKED_CONDITION_FIELDS = union(CONDITION_FIELDS, Set.of("itemTypeName", "colorName"));
 
 	@MockitoBean(name = "policeFoundItemLookupClient")
 	private FoundItemLookupClient policeClient;
@@ -98,6 +107,9 @@ class TrackedLostItemListApiTest extends ApiTestSupport {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private EntityManagerFactory entityManagerFactory;
 
 	@BeforeEach
 	void mockExternal() {
@@ -319,6 +331,121 @@ class TrackedLostItemListApiTest extends ApiTestSupport {
 				.andExpect(jsonPath("$.data.items[0].lostItemId").value(lostItemId))
 				.andExpect(jsonPath("$.data.items[0].status").value("EXPIRED"));
 		verifyNoInteractions(emailSender);
+	}
+
+	@Test
+	@DisplayName("Issue #99: 등록 물품의 종류(물품명 검색어)·색상명을 conditions로 주고, 후보 정보와 섞지 않는다")
+	void showsRegisteredItemDisplayValuesSeparatelyFromCandidate() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				null, null, "강남역", "핸드폰", null, "검정", "검색 조건을 확인했습니다."));
+		String token = signupAndLogin("display@example.test").get("accessToken").asText();
+		String lostItemId = createLostItem(token, "강남역에서 검은 핸드폰을 잃어버렸어요.");
+
+		when(portalClient.searchAllByFoundDate(any(), any())).thenReturn(List.of(new FoundItemListEntry(
+				FoundItemSourceType.PORTAL, "P1", "1", "흰색 핸드폰", "흰색 핸드폰", "휴대폰 > 스마트폰", "흰색",
+				LocalDate.of(2026, 9, 22), "강남역 유실물센터", null)));
+		authorizedPostJson("/api/lost-items/" + lostItemId + "/tracking", token, Map.of())
+				.andExpect(status().isOk());
+
+		List<Map<String, Object>> before = lostItemRows();
+		clearExternalInvocations();
+		JsonNode item = dataOf(tracked(token, "")
+				.andExpect(jsonPath("$.data.items[0].conditions.itemTypeName").value("핸드폰"))
+				.andExpect(jsonPath("$.data.items[0].conditions.colorName").value("검정"))
+				.andExpect(jsonPath("$.data.items[0].currentCandidateCount").value(1)))
+				.get("items").get(0);
+		verifyNoExternalCalls();
+		assertThat(lostItemRows()).isEqualTo(before);
+
+		assertThat(fieldNames(item)).isEqualTo(ITEM_FIELDS);
+		assertThat(fieldNames(item.get("conditions"))).isEqualTo(TRACKED_CONDITION_FIELDS);
+		assertThat(item.get("currentCandidate").isNull()).isTrue();
+		assertThat(item.get("conditions").get("categoryLargeCode").isNull()).isTrue();
+		assertThat(item.get("conditions").get("categoryMiddleCode").isNull()).isTrue();
+		assertThat(item.get("conditions").get("colorCode").isNull()).isTrue();
+		assertThat(jdbcTemplate.queryForObject("SELECT color_name FROM lost_items WHERE lost_item_id = ?",
+				String.class, Long.valueOf(lostItemId))).isEqualTo("검정");
+	}
+
+	@Test
+	@DisplayName("Issue #99: 표시값이 없는 기존 행은 null로 주고, 표시값 때문에 쿼리가 늘지 않는다")
+	void legacyRowsReturnNullDisplayValuesWithoutExtraQueries() throws Exception {
+		String token = signupAndLogin("legacy@example.test").get("accessToken").asText();
+		Member owner = member("legacy@example.test");
+		save(owner, LostItemStatus.TRACKING, false);
+		save(owner, LostItemStatus.EXPIRED, false);
+		Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+
+		JsonNode data;
+		long statements;
+		statistics.setStatisticsEnabled(true);
+		try {
+			statistics.clear();
+			data = dataOf(tracked(token, ""));
+			statements = statistics.getPrepareStatementCount();
+		}
+		finally {
+			statistics.setStatisticsEnabled(false);
+		}
+
+		assertThat(data.get("items")).hasSize(2).allSatisfy(item -> {
+			assertThat(fieldNames(item.get("conditions"))).isEqualTo(TRACKED_CONDITION_FIELDS);
+			assertThat(item.get("conditions").get("itemTypeName").isNull()).isTrue();
+			assertThat(item.get("conditions").get("colorName").isNull()).isTrue();
+			assertThat(item.get("currentCandidate").isNull()).isTrue();
+		});
+		// 목록 SELECT 1회 + 항목별 기존 후보 수 COUNT(N+1, 이번 Issue 범위 밖). 표시값은 같은 행에서 읽는다.
+		assertThat(statements).isEqualTo(1 + 2);
+		verifyNoExternalCalls();
+	}
+
+	@Test
+	@DisplayName("Issue #99: API-05·06·07·08·11·17·21 응답의 conditions에는 표시값이 추가되지 않는다")
+	void otherApisKeepSharedConditionsContract() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				null, null, "강남역", "핸드폰", null, "검정", "검색 조건을 확인했습니다."));
+		String token = signupAndLogin("contract@example.test").get("accessToken").asText();
+
+		JsonNode created = createdDataOf(authorizedPostJson("/api/lost-items", token,
+				Map.of("description", "강남역에서 검은 핸드폰을 잃어버렸어요.")));
+		assertSharedConditions(created.get("lostItem"));
+		String lostItemId = created.get("lostItem").get("lostItemId").asText();
+		String itemUrl = "/api/lost-items/" + lostItemId;
+
+		assertSharedConditions(dataOf(authorizedGet("/api/lost-items", token)).get("items").get(0));
+		assertSharedConditions(dataOf(authorizedGet(itemUrl, token)));
+		assertSharedConditions(dataOf(authorizedPostJson("/api/lost-items/update/" + lostItemId, token,
+				Map.of("description", "강남역에서 검은 핸드폰을 잃어버렸어요. 케이스는 투명해요."))));
+		assertSharedConditions(dataOf(authorizedPostJson(itemUrl + "/searches", token,
+				Map.of("mode", "FILTER", "conditions", Map.of()))).get("lostItem"));
+		assertSharedConditions(dataOf(authorizedPostJson(itemUrl + "/tracking", token, Map.of())));
+		assertSharedConditions(dataOf(authorizedPostJson(itemUrl + "/tracking/stop", token, Map.of())));
+
+		JsonNode tracked = dataOf(tracked(token, "")).get("items").get(0);
+		assertThat(tracked.get("status").asText()).isEqualTo("EXPIRED");
+		assertThat(tracked.get("conditions").get("itemTypeName").asText()).isEqualTo("핸드폰");
+		assertThat(tracked.get("conditions").get("colorName").asText()).isEqualTo("검정");
+	}
+
+	private void assertSharedConditions(JsonNode lostItem) {
+		assertThat(fieldNames(lostItem)).isEqualTo(ITEM_FIELDS);
+		assertThat(fieldNames(lostItem.get("conditions"))).isEqualTo(CONDITION_FIELDS);
+	}
+
+	private String createLostItem(String accessToken, String description) throws Exception {
+		JsonNode created = createdDataOf(
+				authorizedPostJson("/api/lost-items", accessToken, Map.of("description", description)));
+		return created.get("lostItem").get("lostItemId").asText();
+	}
+
+	private JsonNode createdDataOf(ResultActions result) throws Exception {
+		return data(result.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+	}
+
+	private static Set<String> union(Set<String> left, Set<String> right) {
+		Set<String> union = new java.util.HashSet<>(left);
+		union.addAll(right);
+		return Set.copyOf(union);
 	}
 
 	private ResultActions tracked(String accessToken, String query) throws Exception {
