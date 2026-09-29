@@ -27,6 +27,7 @@ import com.whereisit.backend.founditem.service.FoundItemCollectionService;
 import com.whereisit.backend.global.error.BusinessException;
 import com.whereisit.backend.global.error.CommonErrorCode;
 import com.whereisit.backend.lostitem.dto.ChatMessageResponse;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionMode;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionRequest;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
@@ -65,11 +66,13 @@ public class SearchExecutionService {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public SearchExecutionResponse executeInitial(Long memberId, Long lostItemId) {
 		SearchSnapshot snapshot = persistenceService.prepareInitial(memberId, lostItemId);
+		// Issue #99: API-05만 같은 1회 호출에서 API-16 표시용 색상명을 더 요청하고 저장한다(API-11은 기존 6개 필드).
 		AiSearchConditionExtractionResult extracted = aiSearchConditionExtractor.extract(
 				new AiSearchConditionExtractionRequest(
 						snapshot.description(), snapshot.description(), snapshot.languageCode(),
-						LocalDate.now(clock), snapshot.lostDateFrom(), snapshot.lostDateTo(), snapshot.lostPlaceText()));
-		AiAppliedResult applied = persistenceService.applyAiResult(memberId, lostItemId, snapshot, extracted);
+						LocalDate.now(clock), snapshot.lostDateFrom(), snapshot.lostDateTo(), snapshot.lostPlaceText(),
+						AiSearchConditionExtractionMode.INITIAL_SEARCH_WITH_COLOR_NAME));
+		AiAppliedResult applied = persistenceService.applyInitialAiResult(memberId, lostItemId, snapshot, extracted);
 		snapshot = applied.snapshot();
 
 		List<FoundItemListEntry> portalEntries;

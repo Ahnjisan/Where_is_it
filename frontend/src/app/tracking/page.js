@@ -12,6 +12,13 @@ import {
 import { useApp } from "@/context/AppContext";
 import { lostItemApi } from "@/lib/api";
 
+const UNSPECIFIED = "미지정";
+
+// 사용자가 등록한 분실물의 표시값(API-16 conditions.itemTypeName·colorName). 없거나 공백이면 미지정으로 보여준다.
+// 공식 코드(categoryLargeCode·colorCode)나 후보(currentCandidate)의 값으로 대신하지 않는다.
+const registeredDisplayValue = (value) =>
+  typeof value === "string" && value.trim() ? value.trim() : UNSPECIFIED;
+
 export default function TrackingPage() {
   const router = useRouter();
   const { lang, setLang, t, user, stopTracking, showToast } = useApp();
@@ -46,8 +53,8 @@ export default function TrackingPage() {
               id: item.lostItemId,
               title: item.description ? (item.description.length > 20 ? item.description.slice(0, 20) + "..." : item.description) : "분실물 추적",
               prompt: item.description,
-              category: item.conditions?.categoryLargeCode || "기타",
-              color: item.conditions?.colorCode || "미지정",
+              category: registeredDisplayValue(item.conditions?.itemTypeName),
+              color: registeredDisplayValue(item.conditions?.colorName),
               candidatesCount: item.currentCandidateCount || 0,
               statusText: item.status,
               registeredDate: item.createdAt ? item.createdAt.substring(0, 10) : "",
@@ -168,7 +175,7 @@ export default function TrackingPage() {
                     {item.category}
                   </span>
                 )}
-                {item.color && item.color !== "미지정" && (
+                {item.color && (
                   <span className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
                     {item.color}
                   </span>

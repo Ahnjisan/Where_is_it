@@ -24,6 +24,7 @@ import com.whereisit.backend.lostitem.dto.CreateLostItemRequest;
 import com.whereisit.backend.lostitem.dto.LostItemPageResponse;
 import com.whereisit.backend.lostitem.dto.LostItemResponse;
 import com.whereisit.backend.lostitem.dto.SearchConditionsPatch;
+import com.whereisit.backend.lostitem.dto.TrackedLostItemPageResponse;
 import com.whereisit.backend.lostitem.dto.UpdateLostItemRequest;
 import com.whereisit.backend.lostitem.entity.ChatMessage;
 import com.whereisit.backend.lostitem.entity.ChatRole;
@@ -87,13 +88,14 @@ public class LostItemService {
 	/**
 	 * API-16. 추적을 등록한 건(TRACKING·EXPIRED)만 조회한다. 정렬은 저장소 메서드로 고정하므로 요청의 sort는 쓰지 않고
 	 * page·size만 옮긴다. 만료 시각이 지난 TRACKING은 응답에서만 EXPIRED로 보이고 DB 상태는 바꾸지 않는다.
+	 * Issue #99: API-16 전용 응답으로 등록 물품의 표시값(conditions.itemTypeName·colorName)을 같은 행에서 함께 준다.
 	 */
 	@Transactional(readOnly = true)
-	public LostItemPageResponse listTracked(Long memberId, Pageable pageable) {
+	public TrackedLostItemPageResponse listTracked(Long memberId, Pageable pageable) {
 		Pageable pageOnly = PageRequest.of(pageable.getPageNumber(), Math.min(pageable.getPageSize(), MAX_PAGE_SIZE));
 		Page<LostItem> page = lostItemRepository.findByMemberIdAndDeletedAtIsNullAndStatusInOrderByCreatedAtDescIdDesc(
 				memberId, TRACKED_STATUSES, pageOnly);
-		return LostItemPageResponse.from(page, clock, this::currentCandidateCount);
+		return TrackedLostItemPageResponse.from(page, clock, this::currentCandidateCount);
 	}
 
 	/**

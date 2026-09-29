@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.EntityStatistics;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,12 +52,17 @@ import com.whereisit.backend.founditem.entity.FoundItemSourceType;
 import com.whereisit.backend.founditem.repository.FoundItemRepository;
 import com.whereisit.backend.global.error.BusinessException;
 import com.whereisit.backend.lostitem.entity.ChatRole;
+import com.whereisit.backend.lostitem.entity.LostItem;
 import com.whereisit.backend.lostitem.repository.ChatMessageRepository;
 import com.whereisit.backend.lostitem.repository.LostItemRepository;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionMode;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionRequest;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
 import com.whereisit.backend.search.error.SearchErrorCode;
 import com.whereisit.backend.support.ApiTestSupport;
+
+import jakarta.persistence.EntityManagerFactory;
 
 @DisplayName("API-05 initial integrated search")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -90,6 +99,7 @@ class InitialSearchApiTest extends ApiTestSupport {
 	@Autowired private LostItemCandidateRepository candidateRepository;
 	@Autowired private FoundItemRepository foundItemRepository;
 	@Autowired private JdbcTemplate jdbcTemplate;
+	@Autowired private EntityManagerFactory entityManagerFactory;
 
 	@BeforeEach
 	void setUp() {
@@ -173,6 +183,95 @@ class InitialSearchApiTest extends ApiTestSupport {
 		verify(portalNameStorageClient).search(query.capture());
 		assertThat(query.getValue().productNameKeyword()).isEqualTo("지갑");
 		assertThat(query.getValue().storagePlaceKeyword()).isEqualTo("서울역 유실물센터");
+	}
+
+	@Test
+	@DisplayName("Issue #99: 같은 1회 AI 호출의 표시용 색상명을 물품명 검색어와 같은 UPDATE로 저장하고 공개 계약은 유지한다")
+	void storesDisplayColorNameInSameAiUpdate() throws Exception {
+		when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				null, null, "강남역", "핸드폰", null, "검정", "검색 조건을 확인했습니다."));
+		String token = signupAndLogin("color@example.test").get("accessToken").asText();
+		Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+		statistics.setStatisticsEnabled(true);
+		statistics.clear();
+
+		var result = authorizedPostJson("/api/lost-items", token,
+				Map.of("description", "강남역에서 검은 핸드폰을 잃어버렸어요.", "languageCode", "ko"))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.lookupStatus").value("COMPLETE"))
+				.andReturn();
+
+		EntityStatistics lostItemStatistics = statistics.getEntityStatistics(LostItem.class.getName());
+		assertThat(lostItemStatistics.getInsertCount()).isOne();
+		assertThat(lostItemStatistics.getUpdateCount()).isOne();
+		statistics.setStatisticsEnabled(false);
+
+		ArgumentCaptor<AiSearchConditionExtractionRequest> request =
+				ArgumentCaptor.forClass(AiSearchConditionExtractionRequest.class);
+		verify(aiSearchConditionExtractor, times(1)).extract(request.capture());
+		assertThat(request.getValue().mode()).isEqualTo(AiSearchConditionExtractionMode.INITIAL_SEARCH_WITH_COLOR_NAME);
+		ArgumentCaptor<PortalFoundItemSearchQuery> query = ArgumentCaptor.forClass(PortalFoundItemSearchQuery.class);
+		verify(portalNameStorageClient).search(query.capture());
+		assertThat(query.getValue().productNameKeyword()).isEqualTo("핸드폰");
+
+		assertThat(lostItemRepository.findAll()).singleElement().satisfies(lostItem -> {
+			assertThat(lostItem.getProductNameKeyword()).isEqualTo("핸드폰");
+			assertThat(lostItem.getColorName()).isEqualTo("검정");
+			assertThat(lostItem.getCategoryLargeCode()).isNull();
+			assertThat(lostItem.getCategoryMiddleCode()).isNull();
+			assertThat(lostItem.getColorCode()).isNull();
+		});
+		JsonNode conditions = objectMapper.readTree(result.getResponse().getContentAsString())
+				.get("data").get("lostItem").get("conditions");
+		assertThat(conditions.fieldNames()).toIterable().containsExactlyInAnyOrder("categoryLargeCode",
+				"categoryMiddleCode", "colorCode", "regionCode", "lostDateFrom", "lostDateTo", "lostPlaceText",
+				"searchStartDate");
+	}
+
+	@Test
+	@DisplayName("Issue #99: 쓸 수 없는 표시용 색상명은 API-05를 실패시키지 않고 null로 저장하며 포털 검색·랭킹은 그대로 실행한다")
+	void unusableColorNameFailsOpenAndSearchContinues() throws Exception {
+		when(portalNameStorageClient.search(any())).thenReturn(List.of(found("C-1", "1", "검은 핸드폰")));
+		String hundred = "가".repeat(100);
+		String[][] cases = {
+				{null, null}, {"", null}, {"   ", null}, {hundred, hundred}, {"가".repeat(101), null}, {"검정", "검정"}};
+
+		for (int i = 0; i < cases.length; i++) {
+			String aiColorName = cases[i][0];
+			clearInvocations(aiSearchConditionExtractor, portalNameStorageClient, candidateRanker);
+			when(aiSearchConditionExtractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+					null, null, "강남역", "핸드폰", null, aiColorName, "검색 조건을 확인했습니다."));
+			String token = signupAndLogin("fail-open-" + i + "@example.test").get("accessToken").asText();
+
+			JsonNode data = objectMapper.readTree(authorizedPostJson("/api/lost-items", token,
+					Map.of("description", "강남역에서 검은 핸드폰을 잃어버렸어요.", "languageCode", "ko"))
+					.andExpect(status().isCreated())
+					.andExpect(jsonPath("$.data.lookupStatus").value("COMPLETE"))
+					.andExpect(jsonPath("$.data.rankingStatus").value("SUCCESS"))
+					.andExpect(jsonPath("$.data.candidates.length()").value(1))
+					.andReturn().getResponse().getContentAsString()).get("data");
+
+			Long lostItemId = Long.valueOf(data.get("lostItem").get("lostItemId").asText());
+			assertThat(lostItemRepository.findById(lostItemId).orElseThrow().getColorName())
+					.as("AI colorName=%s", aiColorName).isEqualTo(cases[i][1]);
+			verify(aiSearchConditionExtractor, times(1)).extract(any());
+			verify(portalNameStorageClient, times(1)).search(any());
+			verify(candidateRanker, times(1)).rank(any());
+		}
+	}
+
+	@Test
+	@DisplayName("Issue #99: AI가 색상을 주지 않으면 새 검색 건의 색상명은 null이다")
+	void keepsColorNameNullWhenAiReturnsNoColor() throws Exception {
+		String token = signupAndLogin("no-color@example.test").get("accessToken").asText();
+
+		authorizedPostJson("/api/lost-items", token, Map.of("description", "강남역에서 핸드폰을 잃어버렸어요."))
+				.andExpect(status().isCreated());
+
+		assertThat(lostItemRepository.findAll()).singleElement().satisfies(lostItem -> {
+			assertThat(lostItem.getProductNameKeyword()).isEqualTo("지갑");
+			assertThat(lostItem.getColorName()).isNull();
+		});
 	}
 
 	@Test

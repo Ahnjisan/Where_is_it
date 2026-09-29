@@ -77,9 +77,25 @@ public class SearchExecutionPersistenceService {
 		return snapshot(lostItem);
 	}
 
+	/** API-11 INITIAL·TEXT. 표시용 색상명(colorName)은 반영하지 않는다. */
 	@Transactional
 	public AiAppliedResult applyAiResult(Long memberId, Long lostItemId, SearchSnapshot expectedSnapshot,
 			AiSearchConditionExtractionResult result) {
+		return applyAi(memberId, lostItemId, expectedSnapshot, result, false);
+	}
+
+	/**
+	 * API-05 최초 검색 전용(Issue #99). {@link #applyAiResult}와 같은 잠금·snapshot 검증·트랜잭션에서
+	 * 표시용 색상명(colorName)도 함께 반영한다. 같은 LostItem 변경이라 UPDATE 문이 더 늘지 않는다.
+	 */
+	@Transactional
+	public AiAppliedResult applyInitialAiResult(Long memberId, Long lostItemId, SearchSnapshot expectedSnapshot,
+			AiSearchConditionExtractionResult result) {
+		return applyAi(memberId, lostItemId, expectedSnapshot, result, true);
+	}
+
+	private AiAppliedResult applyAi(Long memberId, Long lostItemId, SearchSnapshot expectedSnapshot,
+			AiSearchConditionExtractionResult result, boolean applyColorName) {
 		LostItem lostItem = findOwnedActiveForUpdate(memberId, lostItemId);
 		if (!expectedSnapshot.equals(snapshot(lostItem))) {
 			throw new BusinessException(SearchErrorCode.ITEM_BUSY);
@@ -87,6 +103,9 @@ public class SearchExecutionPersistenceService {
 		try {
 			lostItem.updateAiSearchConditions(result.lostDateFrom(), result.lostDateTo(), result.lostPlaceText());
 			lostItem.updateSearchKeywords(result.productNameKeyword(), result.storagePlaceKeyword());
+			if (applyColorName) {
+				lostItem.updateColorName(result.colorName());
+			}
 		}
 		catch (IllegalArgumentException e) {
 			throw new BusinessException(SearchErrorCode.AI_CONDITION_UNAVAILABLE);

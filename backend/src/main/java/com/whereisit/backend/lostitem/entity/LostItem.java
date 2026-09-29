@@ -83,6 +83,13 @@ public class LostItem extends BaseTimeEntity {
 	@Column(name = "storage_place_keyword", length = 200)
 	private String storagePlaceKeyword;
 
+	/**
+	 * 사용자가 등록한 분실물의 표시용 색상명(예: 검정). API-05에서 AI가 사용자 설명에서만 뽑으며 API-16 표시에 쓴다.
+	 * 경찰청 검색용 공식 코드(color_code)와 다르고 검색·추적 매칭에는 쓰지 않는다. 색상이 없거나 모호하면 null이다.
+	 */
+	@Column(name = "color_name", length = 100)
+	private String colorName;
+
 	@Column(name = "notification_email", length = 254)
 	private String notificationEmail;
 
@@ -168,6 +175,18 @@ public class LostItem extends BaseTimeEntity {
 		if (storagePlaceKeyword != null) {
 			this.storagePlaceKeyword = storagePlaceKeyword;
 		}
+	}
+
+	/**
+	 * API-05 최초 검색에서만 부른다. 새 검색 건에 한 번 반영하므로 AI가 null을 주면 null 그대로 둔다.
+	 * 표시용 선택값이라 쓸 수 없는 값(앞뒤 공백 제거 후 빈 값·100자 초과)은 검색을 실패시키지 않고 null로 둔다.
+	 * API-11 후속 대화는 이 값을 바꾸지 않는다.
+	 */
+	public void updateColorName(String colorName) {
+		String stripped = colorName == null ? null : colorName.strip();
+		boolean usable = stripped != null && !stripped.isEmpty()
+				&& stripped.codePointCount(0, stripped.length()) <= 100;
+		this.colorName = usable ? stripped : null;
 	}
 
 	/** 추적 활성화 시 습득물_조회_시작일이 비어 있으면 정해진 기본값으로 채운다. */

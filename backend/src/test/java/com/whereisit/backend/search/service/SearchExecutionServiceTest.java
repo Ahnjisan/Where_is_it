@@ -51,6 +51,7 @@ import com.whereisit.backend.lostitem.service.LostItemService;
 import com.whereisit.backend.member.entity.LanguageCode;
 import com.whereisit.backend.member.entity.Member;
 import com.whereisit.backend.member.repository.MemberRepository;
+import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionMode;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionRequest;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractionResult;
 import com.whereisit.backend.search.ai.port.AiSearchConditionExtractor;
@@ -211,6 +212,31 @@ class SearchExecutionServiceTest {
 		assertThat(response.assistantMessage().role()).isEqualTo("ASSISTANT");
 		assertThat(messages(ids.lostItemId())).extracting(ChatMessage::getRole)
 				.containsExactly(ChatRole.USER, ChatRole.ASSISTANT);
+	}
+
+	@Test
+	void legacyInitialAndTextRequestSixFieldsAndNeverStoreColorName() {
+		Ids ids = createItem("legacy-color@example.test", "검은 지갑을 잃어버렸어요");
+		// 모드와 관계없이 색상명을 돌려주는 Stub이어도 API-11은 저장하지 않아야 한다.
+		when(extractor.extract(any())).thenReturn(new AiSearchConditionExtractionResult(
+				null, null, "서울역", "지갑", null, "검정", "조건을 반영했습니다."));
+
+		searchExecutionService.execute(ids.memberId(), ids.lostItemId(),
+				new RunSearchRequest(SearchMode.INITIAL, null, null));
+		searchExecutionService.execute(ids.memberId(), ids.lostItemId(),
+				new RunSearchRequest(SearchMode.TEXT, "검은색이었어요", null));
+		searchExecutionService.execute(ids.memberId(), ids.lostItemId(), new RunSearchRequest(
+				SearchMode.FILTER, null, new SearchConditionsPatch(null, null, "BLUE", null, null, null, null, null)));
+
+		ArgumentCaptor<AiSearchConditionExtractionRequest> captor =
+				ArgumentCaptor.forClass(AiSearchConditionExtractionRequest.class);
+		verify(extractor, org.mockito.Mockito.times(2)).extract(captor.capture());
+		assertThat(captor.getAllValues()).extracting(AiSearchConditionExtractionRequest::mode)
+				.containsOnly(AiSearchConditionExtractionMode.SEARCH_CONDITIONS);
+		LostItem saved = transactionTemplate.execute(status -> lostItemRepository.findById(ids.lostItemId()).orElseThrow());
+		assertThat(saved.getColorName()).isNull();
+		assertThat(saved.getProductNameKeyword()).isEqualTo("지갑");
+		assertThat(saved.getColorCode()).isEqualTo("BLUE");
 	}
 
 	private Ids createItem(String email, String description) {

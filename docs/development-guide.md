@@ -249,6 +249,8 @@ docker compose exec mysql mysql -u YOUR_DB_USERNAME -p where_is_it
 
 API-05 통합 검색은 Backend에서 OpenAI Responses API를 호출해 분실 날짜·장소, 물품명 검색어와 보관 장소 검색어를 구조화하고 사용자 언어의 ASSISTANT 메시지를 생성한 뒤, 포털기관 목록 2번 API 조회와 후보 랭킹까지 한 흐름에서 처리합니다. API Key는 Frontend로 전달하지 않습니다.
 
+API-05 최초 검색만 같은 1회 조건 추출 호출에서 API-16 표시용 색상명 `colorName`(string/null, 1~100자)을 추가로 요청합니다(`AiSearchConditionExtractionMode.INITIAL_SEARCH_WITH_COLOR_NAME`). 사용자가 명시한 색상만 짧은 한국어 색상명으로 받고(`검은`·`검정색`·`black` → `검정`, 명확한 복수 색상은 `검정/흰색`), 없거나 모호하면 null입니다. `colorName`은 선택 표시값이므로 앞뒤 공백을 제거한 뒤 빈 값이거나 100자를 넘는 문자열은 API-05를 실패시키지 않고 null로 저장합니다. 필드 누락·JSON 타입 오류·추가 필드와 기존 6개 필드의 검증 실패는 기존처럼 `AI_CONDITION_UNAVAILABLE`입니다. 기존 지시 뒤에 색상 지시만 덧붙이며 `productNameKeyword` 등 기존 필드의 Schema·지시는 바꾸지 않습니다. 값은 기존 AI 결과 반영 트랜잭션(`applyInitialAiResult`)에서 `lost_items.color_name`에 함께 저장되어 UPDATE가 늘지 않습니다. Legacy API-11 INITIAL·TEXT는 기존 6개 필드 Schema를 그대로 쓰고 `colorName`을 요청·저장하지 않습니다.
+
 | 환경변수 | 필수 여부 | 설명 |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | AI 호출 시 필수 | OpenAI 인증 Key. 코드·로그·응답에 기록하지 않습니다. |
@@ -281,7 +283,9 @@ API-05 응답은 `lookupStatus`, `rankingStatus`, `persisted`, `warnings`, `cand
 
 API-11~15는 신규 Frontend 공개 흐름에서 사용하지 않습니다. API-07, `GET /api/lost-items/{lostItemId}/results`는 구현하지 않았습니다. API-17 7일 추적 활성화(`POST /api/lost-items/{lostItemId}/tracking`)는 구현되어 있으며 9절의 방식으로 동작합니다.
 
-API-16 `GET /api/members/me/lost-items`는 로그인 회원의 추적 등록 건(`TRACKING`·`EXPIRED`)만 생성 시각 DESC, 분실물 ID DESC로 조회합니다. `SEARCHING`, 논리 삭제 건, 다른 회원의 건은 제외하고 `status`·`sort` 요청값은 받지 않습니다. `page`(0부터)·`size`(기본 20, 최대 50, 초과 시 50)만 쓰며 응답은 `LostItemPage`입니다. 만료 시각이 지난 `TRACKING`은 응답에서만 `EXPIRED`로 표시하고 DB 상태는 바꾸지 않으며, 외부 API를 호출하지 않습니다.
+API-16 `GET /api/members/me/lost-items`는 로그인 회원의 추적 등록 건(`TRACKING`·`EXPIRED`)만 생성 시각 DESC, 분실물 ID DESC로 조회합니다. `SEARCHING`, 논리 삭제 건, 다른 회원의 건은 제외하고 `status`·`sort` 요청값은 받지 않습니다. `page`(0부터)·`size`(기본 20, 최대 50, 초과 시 50)만 쓰며 응답은 `LostItemPage`와 최상위 구조가 같은 API-16 전용 DTO(`TrackedLostItemPageResponse`)입니다. 만료 시각이 지난 `TRACKING`은 응답에서만 `EXPIRED`로 표시하고 DB 상태는 바꾸지 않으며, 외부 API를 호출하지 않습니다.
+
+API-16의 `conditions`에만 사용자가 등록한 분실물의 표시값 `itemTypeName`(= `product_name_keyword`, 물품명 검색어 재사용)과 `colorName`(= `color_name`)이 더 있습니다. 둘 다 공식 코드(`categoryLargeCode`·`categoryMiddleCode`·`colorCode`)가 아니고 같은 행에서 읽으므로 쿼리가 늘지 않으며, 값이 없는 기존 행은 null입니다(backfill 없음). `currentCandidate`는 기존처럼 항상 null이며 후보 값으로 등록 물품 표시값을 대신하지 않습니다. 다른 API의 `LostItem`·`SearchConditions` 응답에는 두 필드를 추가하지 않습니다. Frontend 추적 목록은 값이 없거나 공백이면 `미지정`으로 표시합니다.
 
 ## 9. 추적 재검색과 이메일 알림
 
