@@ -16,7 +16,6 @@ import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
 import { lostItemApi } from "@/lib/api";
 import { adaptSearchCandidates } from "@/lib/searchCandidateAdapter";
-import { lostItemApi } from "@/lib/api";
 
 function ItemThumbnail({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -318,8 +317,8 @@ function SearchResultsContent() {
             type="button"
             onClick={() => setSortMode("recommend")}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${sortMode === "recommend"
-                ? "bg-[#85132d] text-white shadow-xs"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
+              ? "bg-[#85132d] text-white shadow-xs"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
               }`}
           >
             {t.sortRecommend}
@@ -328,8 +327,8 @@ function SearchResultsContent() {
             type="button"
             onClick={() => setSortMode("latest")}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${sortMode === "latest"
-                ? "bg-[#85132d] text-white shadow-xs"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
+              ? "bg-[#85132d] text-white shadow-xs"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
               }`}
           >
             {t.sortLatest}
