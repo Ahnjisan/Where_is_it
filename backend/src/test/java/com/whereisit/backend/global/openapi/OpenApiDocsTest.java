@@ -92,6 +92,28 @@ class OpenApiDocsTest extends ApiTestSupport {
 	}
 
 	@Test
+	@DisplayName("Issue #94 API-21 추적 종료는 POST만 싣고 요청 본문 없이 경로의 분실물 ID만 받는다")
+	void trackingStopIsDocumented() throws Exception {
+		JsonNode pathItem = objectMapper.readTree(apiDocsBody()).get("paths")
+				.path("/api/lost-items/{lostItemId}/tracking/stop");
+
+		List<String> methods = new ArrayList<>();
+		pathItem.fieldNames().forEachRemaining(methods::add);
+		assertThat(methods).containsExactly("post");
+
+		JsonNode operation = pathItem.path("post");
+		assertThat(operation.path("summary").asText()).isEqualTo("API-21 추적 종료");
+		List<String> parameters = new ArrayList<>();
+		operation.path("parameters").forEach(parameter -> parameters.add(
+				parameter.path("in").asText() + ":" + parameter.path("name").asText()));
+		assertThat(parameters).containsExactly("path:lostItemId");
+		assertThat(operation.path("requestBody").isMissingNode()).isTrue();
+		List<String> responseCodes = new ArrayList<>();
+		operation.path("responses").fieldNames().forEachRemaining(responseCodes::add);
+		assertThat(responseCodes).contains("200", "401", "404", "409");
+	}
+
+	@Test
 	@DisplayName("문서에서 숨긴 API도 URL 매핑은 그대로 남아 있다")
 	void hiddenEndpointsAreStillMapped() {
 		Set<String> mappings = handlerMapping.getHandlerMethods().keySet().stream()
