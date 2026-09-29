@@ -254,7 +254,8 @@ export default function FilterModal({
   currentFilters,
   onApplyFilters,
   lang = "ko",
-  showToast
+  showToast,
+  isLoading = false,
 }) {
   const t = I18N[lang] || I18N.ko;
 
@@ -277,8 +278,9 @@ export default function FilterModal({
 
   if (!isOpen) return null;
 
-  const handleApplyNl = (e) => {
+  const handleApplyNl = async (e) => {
     e?.preventDefault();
+    if (isLoading) return;
     if (!nlQuery.trim()) {
       showToast(
         lang === "ko"
@@ -288,31 +290,30 @@ export default function FilterModal({
       );
       return;
     }
-    onApplyFilters({
+    const success = await onApplyFilters({
       nlQuery: nlQuery.trim()
     });
-    showToast(
-      lang === "ko"
-        ? "자연어 검색 조건이 보정되었습니다."
-        : "Search condition updated with natural language.",
-      "success"
-    );
-    onClose();
+    if (success !== false) {
+      onClose();
+    }
   };
 
-  const handleApplyManual = () => {
-    onApplyFilters({
+  const handleApplyManual = async () => {
+    if (isLoading) return;
+    const success = await onApplyFilters({
       category,
       color,
       lostDate
     });
-    showToast(
-      lang === "ko"
-        ? "상세 필터 조건이 적용되었습니다."
-        : "Filter settings updated successfully.",
-      "success"
-    );
-    onClose();
+    if (success !== false) {
+      showToast(
+        lang === "ko"
+          ? "상세 필터 조건이 적용되었습니다."
+          : "Filter settings updated successfully.",
+        "success"
+      );
+      onClose();
+    }
   };
 
   const handleReset = () => {
@@ -592,12 +593,21 @@ export default function FilterModal({
           <button
             type="button"
             onClick={activeTab === "nl" ? handleApplyNl : handleApplyManual}
-            disabled={activeTab === "nl" && !nlQuery.trim()}
-            className="w-full h-12 rounded-2xl bg-[#85132d] hover:bg-[#701025] disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center cursor-pointer"
+            disabled={isLoading || (activeTab === "nl" && !nlQuery.trim())}
+            className="w-full h-12 rounded-2xl bg-[#85132d] hover:bg-[#701025] disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
           >
-            {activeTab === "nl"
-              ? t.nlApplyBtn || "자연어로 조건 보정하기"
-              : t.applyFilterBtn || "필터 적용하기"}
+            {isLoading ? (
+              <>
+                <Sparkles className="w-4 h-4 animate-spin" />
+                <span>{lang === "ko" ? "AI 조건 분석 및 재검색 중..." : "Searching with AI..."}</span>
+              </>
+            ) : (
+              <span>
+                {activeTab === "nl"
+                  ? t.nlApplyBtn || "자연어로 조건 보정하기"
+                  : t.applyFilterBtn || "필터 적용하기"}
+              </span>
+            )}
           </button>
         </div>
       </div>

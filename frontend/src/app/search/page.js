@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -10,11 +10,12 @@ import {
   Sparkles,
   PlusCircle,
   ImageOff,
+  Loader2,
 } from "lucide-react";
 import FilterModal from "@/components/views/FilterModal";
 import { useApp } from "@/context/AppContext";
-import { adaptSearchCandidates } from "@/lib/searchCandidateAdapter";
 import { lostItemApi } from "@/lib/api";
+import { adaptSearchCandidates } from "@/lib/searchCandidateAdapter";
 
 function ItemThumbnail({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -41,18 +42,64 @@ function ItemThumbnail({ src, alt }) {
 function SearchResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") || "검은 지갑";
+  const initialQuery = searchParams.get("q") || "";
+  const lostItemIdFromUrl = searchParams.get("lostItemId");
 
-  const { lang, t, searchExecution, user, showToast } = useApp();
+  const { lang, t, user, logoutUser, searchExecution, setSearchExecution, addTracking, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortMode, setSortMode] = useState("recommend"); // "recommend" | "latest"
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [filters, setFilters] = useState({
     category: "전체",
     color: "전체",
     lostDate: "",
   });
+
+  const lostItemId =
+    searchExecution?.lostItem?.lostItemId || lostItemIdFromUrl;
+
+  // 새로고침 등으로 searchExecution이 비어있지만 lostItemId가 있는 경우 API-07로 상세 조회 복원
+  useEffect(() => {
+    if (!searchExecution && lostItemId && user?.accessToken) {
+      let isMounted = true;
+      setIsLoadingDetail(true);
+
+      lostItemApi
+        .getDetail(lostItemId, user.accessToken)
+        .then((detail) => {
+          if (!isMounted) return;
+          if (detail.description && !searchQuery) {
+            setSearchQuery(detail.description);
+          }
+          // 후보 상세가 있는 경우 candidate 목록 복원
+          const restoredCandidates = detail.currentCandidate
+            ? [detail.currentCandidate]
+            : [];
+          setSearchExecution({
+            lostItem: detail,
+            lookupStatus: "COMPLETE",
+            candidates: restoredCandidates,
+            warnings: [],
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to fetch lostItem detail (API-07)", err);
+          if (err?.status === 401) {
+            logoutUser();
+          }
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingDetail(false);
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [searchExecution, lostItemId, user?.accessToken, searchQuery, logoutUser, setSearchExecution]);
 
   const items = useMemo(
     () => adaptSearchCandidates(searchExecution?.candidates || []),
@@ -84,27 +131,109 @@ function SearchResultsContent() {
       list.sort((a, b) => {
         if (!a.date) return b.date ? 1 : 0;
         if (!b.date) return -1;
-        return new Date(b.date) - new Date(a.date);
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
     }
 
     return list;
   }, [items, filters, sortMode]);
 
-  const handleApplyFilters = (newFilters) => {
+  const handleApplyFilters = async (newFilters) => {
+    // 1. 자연어 보정인 경우 (API-11: POST /api/lost-items/{lostItemId}/searches mode="TEXT")
     if (newFilters.nlQuery) {
-      setSearchQuery(newFilters.nlQuery);
-      showToast(
-        lang === "ko"
-          ? `'${newFilters.nlQuery}' 조건으로 검색했습니다.`
-          : `Searched for '${newFilters.nlQuery}'.`,
-        "info",
-      );
+      if (!lostItemId) {
+        showToast(
+          lang === "ko"
+            ? "진행 중인 분실물 검색 건을 찾을 수 없습니다."
+            : "No active search session found.",
+          "error",
+        );
+        return false;
+      }
+
+      if (!user?.accessToken) {
+        showToast(
+          lang === "ko"
+            ? "로그인이 필요합니다."
+            : "Please sign in.",
+          "error",
+        );
+        router.push("/signin");
+        return false;
+      }
+
+      setIsSearching(true);
+      try {
+        // 기존 검색어(홈 화면에서 입력했던 메시지) + 이번에 보정 모달에서 새로 입력한 메시지를 결합
+        const baseQuery =
+          searchExecution?.lostItem?.description || searchQuery || initialQuery;
+        const combinedDescription = baseQuery
+          ? `${baseQuery} ${newFilters.nlQuery}`.trim()
+          : newFilters.nlQuery.trim();
+
+        // 홈 화면과 동일하게 새 분실물 검색 API(API-05) 호출
+        const result = await lostItemApi.createSearch(
+          {
+            description: combinedDescription,
+            languageCode: lang,
+          },
+          user.accessToken,
+        );
+
+        setSearchExecution(result);
+        setSearchQuery(combinedDescription);
+
+        // URL의 쿼리 파라미터도 새로 생성된 분실물 ID와 합쳐진 검색어로 동기화
+        const newLostItemId = result?.lostItem?.lostItemId;
+        const newUrlParams = new URLSearchParams({ q: combinedDescription });
+        if (newLostItemId) newUrlParams.set("lostItemId", newLostItemId);
+        router.replace(`/search?${newUrlParams.toString()}`);
+
+        const count = result.candidates?.length || 0;
+        showToast(
+          lang === "ko"
+            ? `'${combinedDescription}' 조건으로 새로 검색되었습니다. (후보 ${count}건)`
+            : `Search updated with '${combinedDescription}'. (${count} items)`,
+          "success",
+        );
+        return true;
+      } catch (err) {
+        if (err.status === 401) {
+          await logoutUser();
+          showToast(
+            lang === "ko"
+              ? "로그인이 만료되었습니다. 다시 로그인해 주세요."
+              : "Session expired. Please sign in again.",
+            "error",
+          );
+          router.push("/signin");
+          return false;
+        }
+
+        let errorMessage = err.message;
+        if (err.code === "SEARCH_TIMEOUT" || err.status === 504 || (err.message && err.message.includes("timed out"))) {
+          errorMessage = lang === "ko"
+            ? "AI 분석 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요."
+            : "AI analysis timed out. Please try again in a moment.";
+        } else if (!errorMessage) {
+          errorMessage = lang === "ko"
+            ? "자연어 조건 보정 중 오류가 발생했습니다."
+            : "Search condition update failed.";
+        }
+
+        showToast(errorMessage, "error");
+        return false;
+      } finally {
+        setIsSearching(false);
+      }
     }
+
+    // 2. 수동 필터인 경우 (클라이언트 필터링)
     setFilters((prev) => ({
       ...prev,
       ...newFilters,
     }));
+    return true;
   };
 
   const handleRegisterTrackingClick = async () => {
@@ -128,6 +257,17 @@ function SearchResultsContent() {
       showToast(err.message || (lang === "ko" ? "추적 등록에 실패했습니다." : "Failed to register tracking."), "error");
     }
   };
+
+  if (isLoadingDetail) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#f8f9fa] px-6 text-center">
+        <Loader2 className="w-8 h-8 text-[#85132d] animate-spin mb-3" />
+        <p className="text-sm font-bold text-gray-800">
+          {lang === "ko" ? "분실물 정보를 불러오는 중입니다..." : "Loading lost item details..."}
+        </p>
+      </div>
+    );
+  }
 
   if (!searchExecution) {
     return (
@@ -176,22 +316,20 @@ function SearchResultsContent() {
           <button
             type="button"
             onClick={() => setSortMode("recommend")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              sortMode === "recommend"
-                ? "bg-[#85132d] text-white shadow-xs"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
-            }`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${sortMode === "recommend"
+              ? "bg-[#85132d] text-white shadow-xs"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
+              }`}
           >
             {t.sortRecommend}
           </button>
           <button
             type="button"
             onClick={() => setSortMode("latest")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              sortMode === "latest"
-                ? "bg-[#85132d] text-white shadow-xs"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
-            }`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${sortMode === "latest"
+              ? "bg-[#85132d] text-white shadow-xs"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200/80"
+              }`}
           >
             {t.sortLatest}
           </button>
@@ -241,9 +379,10 @@ function SearchResultsContent() {
         {filteredItems.map((item) => (
           <div
             key={item.id ?? `${item.sourceType}-${item.atcId}-${item.fdSn}-${item.rank}`}
-            onClick={() =>
-              showToast("상세 조회 연동은 다음 단계에서 제공됩니다.", "info")
-            }
+            onClick={() => {
+              const targetId = item.id || item.atcId || item.foundItemId || item.candidateId;
+              router.push(`/items/${encodeURIComponent(targetId)}`);
+            }}
             className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer active:scale-[0.99] flex gap-3.5 items-start"
           >
             {/* 분실물 썸네일 이미지 */}
@@ -256,7 +395,7 @@ function SearchResultsContent() {
 
             {/* 본문 정보 영역 */}
             <div className="flex-1 min-w-0">
-              {/* 상단 라인: 분류 태그, 색상 chip, 일치율 배지 */}
+              {/* 상단 라인: 분류 태그, 색상 chip */}
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-700">
@@ -329,6 +468,7 @@ function SearchResultsContent() {
         onApplyFilters={handleApplyFilters}
         lang={lang}
         showToast={showToast}
+        isLoading={isSearching}
       />
     </div>
   );

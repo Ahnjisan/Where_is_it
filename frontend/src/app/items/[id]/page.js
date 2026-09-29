@@ -22,9 +22,44 @@ export default function ItemDetailPage({ params }) {
   const unwrappedParams = use(params);
   const itemId = unwrappedParams.id;
 
-  const { lang, t, items, showToast } = useApp();
+  const { lang, t, items, selectedItem, searchExecution, showToast } = useApp();
 
-  const item = items.find((x) => x.id === itemId || x.atcId === itemId) || items[0];
+  // 1) searchExecution의 candidates에서 해당 candidateId/foundItemId/atcId와 일치하는 항목 검색
+  // 2) context에 저장된 selectedItem 확인
+  // 3) items 목록 확인
+  const item = React.useMemo(() => {
+    if (searchExecution?.candidates && Array.isArray(searchExecution.candidates)) {
+      const matched = searchExecution.candidates.find((c) => {
+        const fi = c.foundItem || {};
+        return (
+          c.candidateId === itemId ||
+          String(fi.foundItemId) === String(itemId) ||
+          String(fi.atcId) === String(itemId) ||
+          (c.candidateId == null && fi.atcId && itemId.includes(fi.atcId))
+        );
+      });
+      if (matched) {
+        const { adaptSearchCandidate } = require("@/lib/searchCandidateAdapter");
+        return adaptSearchCandidate(matched);
+      }
+    }
+
+    if (
+      selectedItem &&
+      (selectedItem.id === itemId ||
+        selectedItem.atcId === itemId ||
+        selectedItem.foundItemId === itemId ||
+        selectedItem.candidateId === itemId)
+    ) {
+      return selectedItem;
+    }
+
+    return (
+      items.find((x) => x.id === itemId || x.atcId === itemId) ||
+      selectedItem ||
+      items[0]
+    );
+  }, [searchExecution, selectedItem, items, itemId]);
 
   const [showContactModal, setShowContactModal] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
@@ -33,22 +68,23 @@ export default function ItemDetailPage({ params }) {
 
   // 단일 이미지 추출
   const imageUrl =
+    item.image ||
     item.fdFilePathImg ||
     (Array.isArray(item.images) && item.images.length > 0
       ? item.images[0]
       : typeof item.images === "string"
-      ? item.images
-      : item.image || "");
+        ? item.images
+        : "");
 
   // 데이터 필드 정규화
-  const itemName = item.fdPrdtNm || item.name || "분실물";
-  const storageDate = item.fdYmd || item.date || "정보 없음";
-  const foundLocation = item.fdPlace || item.location || "정보 없음";
-  const category = item.prdtClNm || item.category || "기타";
+  const itemName = item.name || item.fdPrdtNm || "분실물";
+  const storageDate = item.date || item.fdYmd || "정보 없음";
+  const foundLocation = item.location || item.foundPlace || item.fdPlace || "정보 없음";
+  const category = item.category || item.prdtClNm || "기타";
   const color = item.color || "기타";
-  const storageFacility = item.depPlace || item.orgNm || item.storageFacility || "정보 없음";
-  const phone = item.tel || item.phone || "02-3149-2470";
-  const description = item.uniq || item.description || "등록된 상세 설명이 없습니다.";
+  const storageFacility = item.storageFacility || item.depPlace || item.orgNm || "정보 없음";
+  const phone = item.phone || item.tel || "02-3149-2470";
+  const description = item.description || item.uniq || "등록된 상세 설명이 없습니다.";
 
   const copyPhoneNumber = () => {
     if (typeof window !== "undefined" && navigator.clipboard) {
@@ -120,7 +156,7 @@ export default function ItemDetailPage({ params }) {
         </h2>
       </div>
 
-      {/* 3. 5대 핵심 스펙 리스트 (구분선 남발 제거 및 컬러 틴트 아이콘 적용) */}
+      {/* 3. 핵심 스펙 리스트 (구분선 남발 제거 및 컬러 틴트 아이콘 적용) */}
       <div className="px-5 space-y-3.5">
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-2xs divide-y divide-gray-100">
           {/* 보관일자 */}
@@ -135,21 +171,6 @@ export default function ItemDetailPage({ params }) {
             </div>
             <span className="text-xs sm:text-sm font-bold text-gray-900 tracking-[-0.01em]">
               {storageDate}
-            </span>
-          </div>
-
-          {/* 습득장소 */}
-          <div className="flex items-center justify-between py-3 first:pt-1 last:pb-1">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-semibold text-gray-500">
-                {t.foundLocation || "습득장소"}
-              </span>
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-900 tracking-[-0.01em] text-right truncate max-w-[55%]">
-              {foundLocation}
             </span>
           </div>
 

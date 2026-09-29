@@ -57,7 +57,11 @@ export default function HomePage() {
         user.accessToken,
       );
       setSearchExecution(result);
-      router.push(`/search?q=${encodeURIComponent(searchQueryText)}`);
+      const lostItemId = result?.lostItem?.lostItemId;
+      const baseSearchUrl = `/search?q=${encodeURIComponent(searchQueryText)}`;
+      router.push(
+        lostItemId ? `${baseSearchUrl}&lostItemId=${encodeURIComponent(lostItemId)}` : baseSearchUrl,
+      );
     } catch (error) {
       if (error.status === 401) {
         await logoutUser();
