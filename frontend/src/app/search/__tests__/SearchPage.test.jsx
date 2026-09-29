@@ -50,7 +50,7 @@ describe("SearchPage API-05 results", () => {
     expect(push).toHaveBeenCalledWith("/");
   });
 
-  it("renders actual candidates in rank order without a percent badge or detail navigation", () => {
+  it("renders actual candidates in rank order and handles card click", () => {
     searchExecution = {
       lookupStatus: "COMPLETE",
       warnings: [],
@@ -63,14 +63,10 @@ describe("SearchPage API-05 results", () => {
 
     const names = screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent);
     expect(names).toEqual(["실제 첫 번째 후보", "mock이 아닌 두 번째 후보"]);
-    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/일치율/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("실제 첫 번째 후보"));
-    expect(showToast).toHaveBeenCalledWith(
-      "상세 조회 연동은 다음 단계에서 제공됩니다.",
-      "info",
-    );
-    expect(push).not.toHaveBeenCalledWith(expect.stringMatching(/^\/items\//));
+    expect(push).toHaveBeenCalledWith("/items/candidate-1");
   });
 
   it("shows PARTIAL warnings and the empty-result UI", () => {

@@ -29,7 +29,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
     const data = await parseResponseBody(response);
-    
+
     if (!response.ok) {
       const error = new Error(
         data?.error?.message || data?.message || '요청을 처리하지 못했습니다.',
@@ -47,7 +47,7 @@ export const apiFetch = async (endpoint, options = {}) => {
       error.code = 'INVALID_API_RESPONSE';
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     throw error;
@@ -92,6 +92,55 @@ export const lostItemApi = {
 
     if (!response.success || !response.data) {
       const error = new Error('검색 결과를 처리할 수 없습니다.');
+      error.code = 'INVALID_API_RESPONSE';
+      throw error;
+    }
+
+    return response.data;
+  },
+
+  getDetail: async (lostItemId, accessToken) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch(`/lost-items/${lostItemId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.success || !response.data) {
+      const error = new Error('분실물 상세 정보를 불러올 수 없습니다.');
+      error.code = 'INVALID_API_RESPONSE';
+      throw error;
+    }
+
+    return response.data;
+  },
+
+  runSearch: async (lostItemId, request, accessToken) => {
+    if (!accessToken) {
+      const error = new Error('로그인이 필요합니다.');
+      error.status = 401;
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
+    const response = await apiFetch(`/lost-items/${lostItemId}/searches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.success || !response.data) {
+      const error = new Error('조건 보정 검색 결과를 처리할 수 없습니다.');
       error.code = 'INVALID_API_RESPONSE';
       throw error;
     }

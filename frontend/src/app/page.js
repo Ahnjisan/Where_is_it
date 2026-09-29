@@ -57,7 +57,10 @@ export default function HomePage() {
         user.accessToken,
       );
       setSearchExecution(result);
-      router.push(`/search?q=${encodeURIComponent(searchQueryText)}`);
+      const lostItemId = result?.lostItem?.lostItemId;
+      const queryParam = new URLSearchParams({ q: searchQueryText });
+      if (lostItemId) queryParam.set("lostItemId", lostItemId);
+      router.push(`/search?${queryParam.toString()}`);
     } catch (error) {
       if (error.status === 401) {
         await logoutUser();
